@@ -203,6 +203,7 @@
       <button class="act-btn btn-c" id="btnC" onclick="rate(true)"  disabled>✓ Gewusst</button>
     </div>
     <div class="fhint" id="flipHint">Karte anklicken zum Umdrehen</div>
+    <div id="ttsStatus" style="text-align:center;font-size:.72rem;color:var(--muted);min-height:16px;margin-top:6px"></div>
   </div>
   <div class="done-wrap" id="learnDone">
     <div class="done-card pop-in">
@@ -958,16 +959,28 @@ function pickVoice(code){
       || TTS_VOICES.find(v=>v.lang&&v.lang.toLowerCase().startsWith(pre))
       || null;
 }
+let _ttsT;
+function setStatus(msg){
+  const el=document.getElementById('ttsStatus');
+  if(!el) return;
+  el.textContent=msg||'';
+  clearTimeout(_ttsT);
+  if(msg) _ttsT=setTimeout(()=>{ const e=document.getElementById('ttsStatus'); if(e) e.textContent=''; },4500);
+}
 function speak(text, code){
-  if(!('speechSynthesis' in window) || !text) return;
-  try{
-    speechSynthesis.cancel();
-    const u=new SpeechSynthesisUtterance(text);
-    u.lang=TTS_LANG[code]||'de-DE';
-    const v=pickVoice(code); if(v) u.voice=v;
-    u.rate=0.95;
-    speechSynthesis.speak(u);
-  }catch(e){}
+  if(!('speechSynthesis' in window)){ setStatus('⚠️ Browser kann nicht vorlesen'); return; }
+  if(!text) return;
+  const synth=window.speechSynthesis;
+  try{ if(synth.speaking||synth.pending) synth.cancel(); }catch(e){}
+  const u=new SpeechSynthesisUtterance(text);
+  u.lang=TTS_LANG[code]||'de-DE';
+  const v=pickVoice(code); if(v) u.voice=v;
+  u.rate=0.95;
+  u.onstart=function(){ setStatus('🔊 '+text); };
+  u.onerror=function(e){ setStatus('⚠️ '+((e&&e.error)||'Fehler')+' · Stimmen:'+TTS_VOICES.length); };
+  setStatus('… ('+(v?v.lang:'Standard')+', Stimmen '+TTS_VOICES.length+')');
+  try{ synth.speak(u); setTimeout(function(){ try{ if(synth.paused) synth.resume(); }catch(_){} },80); }
+  catch(e){ setStatus('⚠️ Ausnahme beim Vorlesen'); }
 }
 // Lautsprecher-Button auf der Karte: schaltet Ton an/aus (und liest beim Einschalten das aktuelle Wort)
 function speakCurrent(ev){
