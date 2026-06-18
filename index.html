@@ -951,12 +951,6 @@ const TTS_LANG = { de:'de-DE', en:'en-GB', gr:'el-GR' };
 let TTS_VOICES = [];
 function loadTtsVoices(){ try{ TTS_VOICES = speechSynthesis.getVoices()||[]; }catch(e){ TTS_VOICES=[]; } }
 if('speechSynthesis' in window){ loadTtsVoices(); speechSynthesis.onvoiceschanged = loadTtsVoices; }
-let ttsUnlocked=false;
-function unlockTts(){
-  if(ttsUnlocked || !('speechSynthesis' in window)) return;
-  ttsUnlocked=true;
-  try{ const u=new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); }catch(e){}
-}
 function pickVoice(code){
   const want=(TTS_LANG[code]||'de-DE'); const pre=want.split('-')[0].toLowerCase();
   return TTS_VOICES.find(v=>v.lang===want)
@@ -975,12 +969,15 @@ function speak(text, code){
     speechSynthesis.speak(u);
   }catch(e){}
 }
+// Lautsprecher-Button auf der Karte: schaltet Ton an/aus (und liest beim Einschalten das aktuelle Wort)
 function speakCurrent(ev){
   if(ev&&ev.stopPropagation) ev.stopPropagation();
-  unlockTts();
-  const c=S.cards[S.idx]; if(!c) return;
-  const cc=cardContent(c);
-  if(S.flipped) speak(cc.back, cc.backCode); else speak(cc.front, cc.frontCode);
+  setTts(!S.tts);
+  if(S.tts){
+    const c=S.cards[S.idx]; if(!c) return;
+    const cc=cardContent(c);
+    if(S.flipped) speak(cc.back, cc.backCode); else speak(cc.front, cc.frontCode);
+  }
 }
 function setTts(on){
   S.tts=!!on;
@@ -988,6 +985,8 @@ function setTts(on){
   const a=document.getElementById('tOn'), b=document.getElementById('tOff');
   if(a) a.classList.toggle('active', on);
   if(b) b.classList.toggle('active', !on);
+  const sp=document.getElementById('spkBtn');
+  if(sp){ sp.textContent = on ? '🔊' : '🔇'; sp.title = on ? 'Ton an – tippen zum Stummschalten' : 'Ton aus – tippen zum Einschalten'; }
   if(!on && 'speechSynthesis' in window) speechSynthesis.cancel();
 }
 
@@ -1098,12 +1097,10 @@ function buildCards(catKey){
   return [...shuffle(all.filter(c=>isDue(c.p))),...shuffle(all.filter(c=>!isDue(c.p)))].slice(0,20);
 }
 function startCat(catKey){
-  unlockTts();
   S.catKey=catKey; S.cards=buildCards(catKey); S.idx=0; S.ok=0; S.err=0; S.altFlip=false;
   S.mode==='quiz'?launchQuiz(CATS[catKey].name):launchLearn(CATS[catKey].name);
 }
 function startDue(){
-  unlockTts();
   const prog=LS.prog(), all=[];
   for(const [k,c] of Object.entries(CATS))
     c.words.forEach((w,i)=>{ if(isDue(prog[wid(k,i)])) all.push({...w,id:wid(k,i)}); });
@@ -1131,14 +1128,14 @@ function renderCard(){
   document.getElementById('btnC').disabled=true;
   document.getElementById('flipHint').textContent='Karte anklicken zum Umdrehen';
   updateLearnProg();
+  const cc=cardContent(c);
+  if(S.tts) speak(cc.front, cc.frontCode);   // sofort im Tap-Kontext vorlesen (wichtig fuer iOS)
   // update text after flip animation to prevent flash of answer
   setTimeout(()=>{
-    const cc=cardContent(c);
     document.getElementById('cFront').textContent=cc.front;
     document.getElementById('cFrontLang').textContent=cc.frontLang;
     document.getElementById('cBack').textContent=cc.back;
     document.getElementById('cBackLang').textContent=cc.backLang;
-    if(S.tts) speak(cc.front, cc.frontCode);
   },530);
 }
 function updateLearnProg(){
