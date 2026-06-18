@@ -2,3 +2,6 @@
 .DS_Store
 Thumbs.db
 .netlify
+
+# Original-Quellbild (gross) - nur die komprimierte intro.webp wird deployt
+vukabel app header.PNG
