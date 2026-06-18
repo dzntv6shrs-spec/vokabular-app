@@ -954,10 +954,17 @@ function loadTtsVoices(){ try{ TTS_VOICES = speechSynthesis.getVoices()||[]; }ca
 if('speechSynthesis' in window){ loadTtsVoices(); speechSynthesis.onvoiceschanged = loadTtsVoices; }
 function pickVoice(code){
   const want=(TTS_LANG[code]||'de-DE'); const pre=want.split('-')[0].toLowerCase();
-  return TTS_VOICES.find(v=>v.lang===want)
-      || TTS_VOICES.find(v=>v.lang&&v.lang.toLowerCase().replace('_','-')===want.toLowerCase())
-      || TTS_VOICES.find(v=>v.lang&&v.lang.toLowerCase().startsWith(pre))
-      || null;
+  const matches=TTS_VOICES.filter(v=>v.lang && (v.lang.toLowerCase().replace('_','-')===want.toLowerCase() || v.lang.toLowerCase().startsWith(pre)));
+  if(!matches.length) return null;
+  const score=v=>{
+    const n=(v.name||'').toLowerCase(); let s=0;
+    if(v.lang.toLowerCase().replace('_','-')===want.toLowerCase()) s+=4;       // exakte Region (z.B. de-DE)
+    if(/siri|premium|enhanced|neural|natural/.test(n)) s+=3;                    // hochwertige Stimmen bevorzugen
+    if(/compact|kompakt|eloquence/.test(n)) s-=3;                              // roboterhafte meiden
+    if(v.default) s+=1;
+    return s;
+  };
+  return matches.slice().sort((a,b)=>score(b)-score(a))[0];
 }
 let _ttsT;
 function setStatus(msg){
@@ -976,9 +983,7 @@ function speak(text, code){
   u.lang=TTS_LANG[code]||'de-DE';
   const v=pickVoice(code); if(v) u.voice=v;
   u.rate=0.95;
-  u.onstart=function(){ setStatus('🔊 '+text); };
-  u.onerror=function(e){ setStatus('⚠️ '+((e&&e.error)||'Fehler')+' · Stimmen:'+TTS_VOICES.length); };
-  setStatus('… ('+(v?v.lang:'Standard')+', Stimmen '+TTS_VOICES.length+')');
+  u.onerror=function(e){ setStatus('⚠️ '+((e&&e.error)||'Fehler')); };
   try{ synth.speak(u); setTimeout(function(){ try{ if(synth.paused) synth.resume(); }catch(_){} },80); }
   catch(e){ setStatus('⚠️ Ausnahme beim Vorlesen'); }
 }
