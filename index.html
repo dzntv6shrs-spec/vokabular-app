@@ -1137,7 +1137,12 @@ function speak(text, code){
   u.lang=TTS_LANG[code]||'de-DE';
   const v=pickVoice(code); if(v) u.voice=v;
   u.rate=0.95;
-  u.onerror=function(e){ setStatus('⚠️ '+((e&&e.error)||'Fehler')); };
+  u.onerror=function(e){
+    var err=(e&&e.error)||'';
+    // 'canceled'/'interrupted' entstehen beim schnellen Umblättern (laufende Ausgabe wird ersetzt) -> kein echter Fehler
+    if(err==='canceled'||err==='interrupted') return;
+    setStatus('⚠️ '+(err||'Fehler'));
+  };
   try{ synth.speak(u); setTimeout(function(){ try{ if(synth.paused) synth.resume(); }catch(_){} },80); }
   catch(e){ setStatus('⚠️ Ausnahme beim Vorlesen'); }
 }
