@@ -1,0 +1,1226 @@
+<!DOCTYPE html>
+<html lang="de" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MRD Vokabeltrainer</title>
+  <style>
+    :root {
+      --bg:#0f0f15;--surface:#1a1a26;--accent:#7c6cf3;--accent-light:#a89cf5;
+      --success:#4ade80;--error:#f87171;--warning:#fbbf24;
+      --text:#e8e8f0;--muted:#8888aa;--border:#2a2a40;--r:16px;
+      --shadow:0 4px 24px rgba(0,0,0,.5);
+    }
+    [data-theme="light"]{
+      --bg:#f0f0f8;--surface:#fff;--accent:#6c63ff;--accent-light:#5a52cc;
+      --success:#16a34a;--error:#dc2626;--warning:#d97706;
+      --text:#1a1a2e;--muted:#6060aa;--border:#ddddf0;--shadow:0 4px 16px rgba(0,0,0,.12);
+    }
+    *{box-sizing:border-box;margin:0;padding:0}
+    body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;transition:background .3s,color .3s}
+    .app{max-width:480px;margin:0 auto;padding:0 16px;min-height:100vh}
+    .view{display:none;padding-top:8px}.view.active{display:block}
+    /* Header */
+    .hdr{display:flex;align-items:center;justify-content:space-between;padding:18px 0 20px}
+    .hdr h1{font-size:1.35rem;font-weight:800;color:var(--accent-light)}
+    .icon-btn{background:var(--surface);border:1px solid var(--border);border-radius:50%;width:40px;height:40px;cursor:pointer;font-size:1.1rem;display:flex;align-items:center;justify-content:center;transition:all .2s;color:var(--text)}
+    .icon-btn:hover{background:var(--border)}
+    /* Stats */
+    .stats-row{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:16px}
+    .stat-card{background:var(--surface);border-radius:14px;padding:14px 10px;text-align:center;border:1px solid var(--border);box-shadow:var(--shadow)}
+    .stat-card .val{font-size:1.8rem;font-weight:800;line-height:1}
+    .stat-card .lbl{font-size:.68rem;color:var(--muted);margin-top:4px;text-transform:uppercase;letter-spacing:.06em}
+    .c-w{color:var(--warning)}.c-g{color:var(--success)}.c-a{color:var(--accent-light)}
+    /* Due btn */
+    .due-btn{width:100%;padding:14px 18px;border-radius:var(--r);background:linear-gradient(135deg,var(--accent),#5a52cc);color:#fff;border:none;font-size:1rem;font-weight:700;cursor:pointer;margin-bottom:14px;box-shadow:0 4px 20px rgba(108,99,255,.4);transition:transform .15s,box-shadow .15s;display:flex;align-items:center;justify-content:space-between}
+    .due-btn:hover{transform:translateY(-2px);box-shadow:0 8px 24px rgba(108,99,255,.5)}
+    .badge{background:rgba(255,255,255,.22);border-radius:20px;padding:3px 12px;font-size:.9rem}
+    /* Toggles */
+    .toggle-row{display:flex;background:var(--surface);border-radius:12px;border:1px solid var(--border);margin-bottom:12px;padding:4px;gap:4px}
+    .tog-btn{flex:1;padding:8px 4px;border:none;background:transparent;color:var(--muted);cursor:pointer;font-size:.85rem;font-weight:600;border-radius:9px;transition:all .2s}
+    .tog-btn.active{background:var(--accent);color:#fff}
+    /* Lang toggle - 2 options */
+    .lang-row{display:flex;background:var(--surface);border-radius:12px;border:1px solid var(--border);margin-bottom:12px;padding:4px;gap:4px}
+    /* Dir toggle - 3 options */
+    .dir-row{display:flex;background:var(--surface);border-radius:12px;border:1px solid var(--border);margin-bottom:16px;padding:4px;gap:4px}
+    /* Section title */
+    .sec{font-size:.72rem;color:var(--muted);margin-bottom:10px;text-transform:uppercase;letter-spacing:.08em;font-weight:600}
+    /* Category grid */
+    .cat-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+    .cat-card{background:var(--surface);border-radius:var(--r);padding:15px;cursor:pointer;border:1px solid var(--border);transition:all .2s;box-shadow:var(--shadow)}
+    .cat-card:hover{border-color:var(--accent);transform:translateY(-2px)}
+    .cat-emoji{font-size:1.8rem;margin-bottom:7px;display:block}
+    .cat-name{font-weight:700;font-size:.92rem}
+    .cat-cnt{font-size:.72rem;color:var(--muted);margin-top:2px}
+    .mini-bar{height:4px;background:var(--border);border-radius:2px;margin-top:9px;overflow:hidden}
+    .mini-fill{height:100%;background:var(--success);border-radius:2px;transition:width .6s}
+    /* Learn header */
+    .lhdr{display:flex;align-items:center;gap:10px;padding:14px 0 16px}
+    .back-btn{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:7px 13px;cursor:pointer;color:var(--text);font-size:.85rem;transition:all .2s;white-space:nowrap}
+    .back-btn:hover{background:var(--border)}
+    .ltitle{font-size:1.05rem;font-weight:700;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+    .plbl{font-size:.78rem;color:var(--muted);text-align:right;margin-bottom:5px}
+    .pwrap{height:6px;background:var(--border);border-radius:3px;margin-bottom:24px;overflow:hidden}
+    .pfill{height:100%;background:linear-gradient(90deg,var(--accent),var(--accent-light));border-radius:3px;transition:width .4s}
+    /* Card */
+    .card-scene{perspective:1000px;height:220px;margin-bottom:22px;cursor:pointer}
+    .card-3d{width:100%;height:100%;position:relative;transform-style:preserve-3d;transition:transform .52s cubic-bezier(.4,0,.2,1)}
+    .card-3d.flipped{transform:rotateY(180deg)}
+    .card-face{position:absolute;inset:0;backface-visibility:hidden;border-radius:var(--r);display:flex;flex-direction:column;align-items:center;justify-content:center;padding:28px;box-shadow:var(--shadow)}
+    .card-front{background:var(--surface);border:1px solid var(--border)}
+    .card-back{background:linear-gradient(145deg,#1e1840,#2c2460);border:1px solid var(--accent);transform:rotateY(180deg)}
+    .clang{font-size:.7rem;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);margin-bottom:12px}
+    .cword{font-size:1.9rem;font-weight:800;text-align:center;line-height:1.2}
+    .chint{font-size:.76rem;color:var(--muted);margin-top:12px}
+    .card-back .cword{color:var(--accent-light)}
+    /* Action btns */
+    .act-row{display:flex;gap:11px;margin-bottom:14px}
+    .act-btn{flex:1;padding:14px;border-radius:var(--r);border:2px solid;font-size:.93rem;font-weight:700;cursor:pointer;transition:all .18s;display:flex;align-items:center;justify-content:center;gap:5px}
+    .act-btn:disabled{opacity:.35;cursor:default;pointer-events:none}
+    .btn-w{background:rgba(248,113,113,.1);border-color:rgba(248,113,113,.35);color:var(--error)}
+    .btn-c{background:rgba(74,222,128,.1);border-color:rgba(74,222,128,.35);color:var(--success)}
+    .btn-w:hover:not(:disabled){background:rgba(248,113,113,.22)}
+    .btn-c:hover:not(:disabled){background:rgba(74,222,128,.22)}
+    .fhint{text-align:center;font-size:.78rem;color:var(--muted)}
+    /* Quiz */
+    .qword{font-size:2rem;font-weight:800;text-align:center;margin:24px 0 22px;line-height:1.2}
+    .qinput{width:100%;padding:14px 17px;border-radius:var(--r);background:var(--surface);border:2px solid var(--border);color:var(--text);font-size:1rem;outline:none;transition:border-color .2s;margin-bottom:12px}
+    .qinput:focus{border-color:var(--accent)}
+    .qinput.ok{border-color:var(--success);background:rgba(74,222,128,.07)}
+    .qinput.nok{border-color:var(--error);background:rgba(248,113,113,.07)}
+    .qfb{min-height:30px;text-align:center;font-size:.93rem;font-weight:700;margin-bottom:12px}
+    .qfb.ok{color:var(--success)}.qfb.nok{color:var(--error)}
+    .qsub{width:100%;padding:14px;border-radius:var(--r);background:var(--accent);color:#fff;border:none;font-size:.98rem;font-weight:700;cursor:pointer;transition:background .2s}
+    .qsub:hover{background:#5a52cc}
+    /* Done card */
+    .done-wrap{display:none}
+    .done-card{background:var(--surface);border-radius:20px;padding:32px 22px;text-align:center;border:1px solid var(--border);box-shadow:var(--shadow);margin-top:28px}
+    .done-emoji{font-size:3.5rem;margin-bottom:12px;display:block}
+    .done-title{font-size:1.4rem;font-weight:800;margin-bottom:5px}
+    .done-sub{color:var(--muted);margin-bottom:22px;font-size:.88rem}
+    .done-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:24px}
+    .done-stat{background:var(--bg);border-radius:12px;padding:14px;border:1px solid var(--border)}
+    .done-stat .dv{font-size:1.9rem;font-weight:800}
+    .done-stat .dl{font-size:.7rem;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin-top:2px}
+    .done-btn{width:100%;padding:13px;border-radius:12px;border:none;font-size:.93rem;font-weight:700;cursor:pointer;margin-bottom:8px;transition:all .18s}
+    .done-btn.p{background:var(--accent);color:#fff}.done-btn.p:hover{background:#5a52cc}
+    .done-btn.g{background:transparent;color:var(--text);border:1px solid var(--border)}.done-btn.g:hover{background:var(--border)}
+    /* Progress */
+    .plist{display:flex;flex-direction:column;gap:10px}
+    .pitem{background:var(--surface);border-radius:var(--r);padding:15px;border:1px solid var(--border)}
+    .pitem-hdr{display:flex;align-items:center;gap:9px;margin-bottom:9px}
+    .pitem-name{font-weight:700;flex:1}
+    .pitem-pct{font-size:.83rem;color:var(--accent-light);font-weight:700}
+    .pbreak{display:flex;gap:12px;font-size:.73rem;margin-top:7px}
+    .pg{color:var(--success)}.pd{color:var(--warning)}.pn{color:var(--muted)}
+    /* Bottom nav */
+    .bnav{position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:480px;background:var(--surface);border-top:1px solid var(--border);display:flex;padding:8px 8px 18px;gap:4px}
+    .nb{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;padding:8px 4px;cursor:pointer;border:none;background:transparent;color:var(--muted);font-size:.65rem;font-weight:600;text-transform:uppercase;letter-spacing:.05em;border-radius:10px;transition:all .2s}
+    .nb svg{width:21px;height:21px}
+    .nb.active{color:var(--accent-light);background:rgba(124,108,243,.12)}
+    .spacer{height:86px}
+    /* Animations */
+    @keyframes popIn{from{transform:scale(.85);opacity:0}to{transform:scale(1);opacity:1}}
+    @keyframes shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-8px)}75%{transform:translateX(8px)}}
+    @keyframes fadeIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+    .pop-in{animation:popIn .32s cubic-bezier(.34,1.56,.64,1)}
+    .shake{animation:shake .3s ease}
+    .fade-in{animation:fadeIn .3s ease}
+  </style>
+</head>
+<body>
+<div class="app">
+
+<!-- HOME -->
+<div id="view-home" class="view active">
+  <div class="hdr">
+    <h1>📚 MRD Trainer</h1>
+    <button class="icon-btn" onclick="toggleTheme()" id="themeBtn">🌙</button>
+  </div>
+  <div class="stats-row">
+    <div class="stat-card"><div class="val c-w" id="statStreak">0</div><div class="lbl">🔥 Streak</div></div>
+    <div class="stat-card"><div class="val c-g" id="statToday">0</div><div class="lbl">Heute ✓</div></div>
+    <div class="stat-card"><div class="val c-a" id="statTotal">0</div><div class="lbl">Gesamt</div></div>
+  </div>
+  <button class="due-btn" onclick="startDue()">
+    <span>📅 Heute fällig lernen</span>
+    <span class="badge" id="dueBadge">0</span>
+  </button>
+  <div class="sec">Sprache</div>
+  <div class="lang-row toggle-row">
+    <button class="tog-btn active" id="lEN" onclick="setLang('en')">🇬🇧 Englisch</button>
+    <button class="tog-btn"        id="lGR" onclick="setLang('gr')">🇬🇷 Griechisch</button>
+  </div>
+  <div class="sec">Lernrichtung</div>
+  <div class="dir-row toggle-row">
+    <button class="tog-btn active" id="dDE" onclick="setDir('de')">🇩🇪 DE → Fremd</button>
+    <button class="tog-btn"        id="dTL" onclick="setDir('tl')">Fremd → 🇩🇪 DE</button>
+    <button class="tog-btn"        id="dALT" onclick="setDir('alt')">🔄 Abwechselnd</button>
+  </div>
+  <div class="sec">Modus</div>
+  <div class="toggle-row" style="margin-bottom:16px">
+    <button class="tog-btn active" id="mCard" onclick="setMode('card')">🃏 Karteikarten</button>
+    <button class="tog-btn"        id="mQuiz" onclick="setMode('quiz')">✏️ Quiz</button>
+  </div>
+  <div class="sec">Kategorien</div>
+  <div class="cat-grid" id="catGrid"></div>
+  <div class="spacer"></div>
+</div>
+
+<!-- LEARN -->
+<div id="view-learn" class="view">
+  <div class="lhdr">
+    <button class="back-btn" onclick="goHome()">← Zurück</button>
+    <span class="ltitle" id="learnTitle">Lernen</span>
+  </div>
+  <div class="plbl" id="learnLbl">0 / 0</div>
+  <div class="pwrap"><div class="pfill" id="learnFill" style="width:0%"></div></div>
+  <div id="cardArea">
+    <div class="card-scene" onclick="flipCard()">
+      <div class="card-3d" id="card3d">
+        <div class="card-face card-front">
+          <div class="clang" id="cFrontLang">🇩🇪 Deutsch</div>
+          <div class="cword" id="cFront">—</div>
+          <div class="chint">Tippe zum Umdrehen</div>
+        </div>
+        <div class="card-face card-back">
+          <div class="clang" id="cBackLang">🇬🇧 English</div>
+          <div class="cword" id="cBack">—</div>
+        </div>
+      </div>
+    </div>
+    <div class="act-row">
+      <button class="act-btn btn-w" id="btnW" onclick="rate(false)" disabled>✗ Nicht gewusst</button>
+      <button class="act-btn btn-c" id="btnC" onclick="rate(true)"  disabled>✓ Gewusst</button>
+    </div>
+    <div class="fhint" id="flipHint">Karte anklicken zum Umdrehen</div>
+  </div>
+  <div class="done-wrap" id="learnDone">
+    <div class="done-card pop-in">
+      <span class="done-emoji" id="lEmoji">🎉</span>
+      <div class="done-title">Session fertig!</div>
+      <div class="done-sub" id="lSub">Gut gemacht!</div>
+      <div class="done-grid">
+        <div class="done-stat"><div class="dv" style="color:var(--success)" id="lOk">0</div><div class="dl">Gewusst ✓</div></div>
+        <div class="done-stat"><div class="dv" style="color:var(--error)"   id="lErr">0</div><div class="dl">Nicht gewusst ✗</div></div>
+      </div>
+      <button class="done-btn p" onclick="replayLearn()">🔄 Nochmal</button>
+      <button class="done-btn g" onclick="goHome()">🏠 Startseite</button>
+    </div>
+  </div>
+  <div class="spacer"></div>
+</div>
+
+<!-- QUIZ -->
+<div id="view-quiz" class="view">
+  <div class="lhdr">
+    <button class="back-btn" onclick="goHome()">← Zurück</button>
+    <span class="ltitle" id="quizTitle">Quiz</span>
+  </div>
+  <div class="plbl" id="quizLbl">0 / 0</div>
+  <div class="pwrap"><div class="pfill" id="quizFill" style="width:0%"></div></div>
+  <div id="quizArea">
+    <div class="qword" id="qWord">—</div>
+    <div class="clang" style="text-align:center;margin-bottom:10px" id="qHintLang"></div>
+    <input id="qInput" class="qinput" type="text" placeholder="Übersetzung eingeben…" onkeydown="if(event.key==='Enter')submitQuiz()">
+    <div class="qfb" id="qFb"></div>
+    <button class="qsub" id="qBtn" onclick="submitQuiz()">Prüfen →</button>
+  </div>
+  <div class="done-wrap" id="quizDone">
+    <div class="done-card pop-in">
+      <span class="done-emoji" id="qEmoji">🎉</span>
+      <div class="done-title">Quiz abgeschlossen!</div>
+      <div class="done-sub" id="qSub">Super!</div>
+      <div class="done-grid">
+        <div class="done-stat"><div class="dv" style="color:var(--success)" id="qOk">0</div><div class="dl">Richtig ✓</div></div>
+        <div class="done-stat"><div class="dv" style="color:var(--error)"   id="qErr">0</div><div class="dl">Falsch ✗</div></div>
+      </div>
+      <button class="done-btn p" onclick="replayQuiz()">🔄 Nochmal</button>
+      <button class="done-btn g" onclick="goHome()">🏠 Startseite</button>
+    </div>
+  </div>
+  <div class="spacer"></div>
+</div>
+
+<!-- PROGRESS -->
+<div id="view-progress" class="view">
+  <div class="hdr"><h1>📊 Fortschritt</h1><button class="icon-btn" onclick="toggleTheme()">🌙</button></div>
+  <div class="sec">Nach Kategorie</div>
+  <div class="plist" id="progList"></div>
+  <div class="spacer"></div>
+</div>
+
+<!-- BOTTOM NAV -->
+<nav class="bnav">
+  <button class="nb active" id="nav-home" onclick="showView('home')">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9,22 9,12 15,12 15,22"/></svg>
+    Start
+  </button>
+  <button class="nb" id="nav-progress" onclick="showView('progress')">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+    Fortschritt
+  </button>
+</nav>
+</div>
+
+<script>
+// ═══════════════════════════════════════════
+//  VOCABULARY  (de / en / gr)
+// ═══════════════════════════════════════════
+const CATS = {
+  alltag:{name:"Alltag",emoji:"🏠",words:[
+    // Begrüßung & Basics
+    {de:"Hallo",en:"Hello",gr:"Γεια σου"},{de:"Auf Wiedersehen",en:"Goodbye",gr:"Αντίο"},
+    {de:"Bitte",en:"Please",gr:"Παρακαλώ"},{de:"Danke",en:"Thank you",gr:"Ευχαριστώ"},
+    {de:"Entschuldigung",en:"Excuse me",gr:"Συγγνώμη"},{de:"Ja",en:"Yes",gr:"Ναι"},
+    {de:"Nein",en:"No",gr:"Όχι"},{de:"Guten Morgen",en:"Good morning",gr:"Καλημέρα"},
+    {de:"Guten Abend",en:"Good evening",gr:"Καλησπέρα"},{de:"Gute Nacht",en:"Good night",gr:"Καληνύχτα"},
+    {de:"Wie geht es Ihnen",en:"How are you",gr:"Πώς είστε"},{de:"Ich verstehe nicht",en:"I don't understand",gr:"Δεν καταλαβαίνω"},
+    {de:"Bitte langsamer",en:"Please speak slower",gr:"Πιο αργά παρακαλώ"},{de:"Wo ist",en:"Where is",gr:"Πού είναι"},
+    {de:"Wie viel kostet das",en:"How much does it cost",gr:"Πόσο κοστίζει"},
+    // Zeit
+    {de:"Heute",en:"Today",gr:"Σήμερα"},{de:"Morgen",en:"Tomorrow",gr:"Αύριο"},
+    {de:"Gestern",en:"Yesterday",gr:"Χθες"},{de:"Woche",en:"Week",gr:"Εβδομάδα"},
+    {de:"Monat",en:"Month",gr:"Μήνας"},{de:"Jahr",en:"Year",gr:"Χρόνος"},
+    {de:"Stunde",en:"Hour",gr:"Ώρα"},{de:"Minute",en:"Minute",gr:"Λεπτό"},
+    {de:"Mittag",en:"Noon",gr:"Μεσημέρι"},{de:"Mitternacht",en:"Midnight",gr:"Μεσάνυχτα"},
+    {de:"früh",en:"Early",gr:"Νωρίς"},{de:"spät",en:"Late",gr:"Αργά"},
+    {de:"jetzt",en:"Now",gr:"Τώρα"},{de:"immer",en:"Always",gr:"Πάντα"},
+    {de:"manchmal",en:"Sometimes",gr:"Μερικές φορές"},{de:"nie",en:"Never",gr:"Ποτέ"},
+    {de:"oft",en:"Often",gr:"Συχνά"},{de:"Zeit",en:"Time",gr:"Χρόνος"},
+    {de:"Uhr",en:"Clock",gr:"Ρολόι"},
+    // Wochentage
+    {de:"Montag",en:"Monday",gr:"Δευτέρα"},{de:"Dienstag",en:"Tuesday",gr:"Τρίτη"},
+    {de:"Mittwoch",en:"Wednesday",gr:"Τετάρτη"},{de:"Donnerstag",en:"Thursday",gr:"Πέμπτη"},
+    {de:"Freitag",en:"Friday",gr:"Παρασκευή"},{de:"Samstag",en:"Saturday",gr:"Σάββατο"},
+    {de:"Sonntag",en:"Sunday",gr:"Κυριακή"},
+    // Monate
+    {de:"Januar",en:"January",gr:"Ιανουάριος"},{de:"Februar",en:"February",gr:"Φεβρουάριος"},
+    {de:"März",en:"March",gr:"Μάρτιος"},{de:"April",en:"April",gr:"Απρίλιος"},
+    {de:"Mai",en:"May",gr:"Μάιος"},{de:"Juni",en:"June",gr:"Ιούνιος"},
+    {de:"Juli",en:"July",gr:"Ιούλιος"},{de:"August",en:"August",gr:"Αύγουστος"},
+    {de:"September",en:"September",gr:"Σεπτέμβριος"},{de:"Oktober",en:"October",gr:"Οκτώβριος"},
+    {de:"November",en:"November",gr:"Νοέμβριος"},{de:"Dezember",en:"December",gr:"Δεκέμβριος"},
+    {de:"Frühling",en:"Spring",gr:"Άνοιξη"},{de:"Sommer",en:"Summer",gr:"Καλοκαίρι"},
+    {de:"Herbst",en:"Autumn",gr:"Φθινόπωρο"},{de:"Winter",en:"Winter",gr:"Χειμώνας"},
+    // Zuhause
+    {de:"Telefon",en:"Phone",gr:"Τηλέφωνο"},{de:"Haus",en:"House",gr:"Σπίτι"},
+    {de:"Wohnung",en:"Apartment",gr:"Διαμέρισμα"},{de:"Tür",en:"Door",gr:"Πόρτα"},
+    {de:"Fenster",en:"Window",gr:"Παράθυρο"},{de:"Küche",en:"Kitchen",gr:"Κουζίνα"},
+    {de:"Badezimmer",en:"Bathroom",gr:"Μπάνιο"},{de:"Schlafzimmer",en:"Bedroom",gr:"Υπνοδωμάτιο"},
+    {de:"Wohnzimmer",en:"Living room",gr:"Σαλόνι"},{de:"Garten",en:"Garden",gr:"Κήπος"},
+    {de:"Tisch",en:"Table",gr:"Τραπέζι"},{de:"Stuhl",en:"Chair",gr:"Καρέκλα"},
+    {de:"Bett",en:"Bed",gr:"Κρεβάτι"},{de:"Kühlschrank",en:"Fridge",gr:"Ψυγείο"},
+    {de:"Waschmaschine",en:"Washing machine",gr:"Πλυντήριο"},{de:"Fernseher",en:"TV",gr:"Τηλεόραση"},
+    // Wetter
+    {de:"Wetter",en:"Weather",gr:"Καιρός"},{de:"Sonne",en:"Sun",gr:"Ήλιος"},
+    {de:"Regen",en:"Rain",gr:"Βροχή"},{de:"Schnee",en:"Snow",gr:"Χιόνι"},
+    {de:"Wind",en:"Wind",gr:"Άνεμος"},{de:"Wolke",en:"Cloud",gr:"Σύννεφο"},
+    {de:"Gewitter",en:"Thunderstorm",gr:"Καταιγίδα"},{de:"warm",en:"Warm",gr:"Ζεστός"},
+    {de:"kalt",en:"Cold",gr:"Κρύος"},{de:"sonnig",en:"Sunny",gr:"Ηλιόλουστος"},
+    // Personen & Adjektive
+    {de:"Mann",en:"Man",gr:"Άντρας"},{de:"Frau",en:"Woman",gr:"Γυναίκα"},
+    {de:"Kind",en:"Child",gr:"Παιδί"},{de:"Familie",en:"Family",gr:"Οικογένεια"},
+    {de:"Freund",en:"Friend",gr:"Φίλος"},{de:"Nachbar",en:"Neighbour",gr:"Γείτονας"},
+    {de:"groß",en:"Big",gr:"Μεγάλος"},{de:"klein",en:"Small",gr:"Μικρός"},
+    {de:"neu",en:"New",gr:"Νέος"},{de:"alt",en:"Old",gr:"Παλιός"},
+    {de:"gut",en:"Good",gr:"Καλός"},{de:"schlecht",en:"Bad",gr:"Κακός"},
+    {de:"schnell",en:"Fast",gr:"Γρήγορος"},{de:"langsam",en:"Slow",gr:"Αργός"},
+    {de:"teuer",en:"Expensive",gr:"Ακριβός"},{de:"billig",en:"Cheap",gr:"Φθηνός"},
+    {de:"schön",en:"Beautiful",gr:"Όμορφος"},{de:"sauber",en:"Clean",gr:"Καθαρός"},
+    // Verkehr & Einkaufen
+    {de:"Straße",en:"Street",gr:"Δρόμος"},{de:"Stadt",en:"City",gr:"Πόλη"},
+    {de:"Auto",en:"Car",gr:"Αυτοκίνητο"},{de:"Fahrrad",en:"Bicycle",gr:"Ποδήλατο"},
+    {de:"Bus",en:"Bus",gr:"Λεωφορείο"},{de:"U-Bahn",en:"Underground",gr:"Μετρό"},
+    {de:"Tankstelle",en:"Petrol station",gr:"Βενζινάδικο"},{de:"Parkplatz",en:"Car park",gr:"Πάρκινγκ"},
+    {de:"Geld",en:"Money",gr:"Χρήματα"},{de:"Kreditkarte",en:"Credit card",gr:"Πιστωτική κάρτα"},
+    {de:"bar bezahlen",en:"Pay cash",gr:"Πληρώνω μετρητά"},{de:"Wechselgeld",en:"Change",gr:"Ρέστα"},
+    // Arbeit & Gesundheit
+    {de:"Arbeit",en:"Work",gr:"Δουλειά"},{de:"Büro",en:"Office",gr:"Γραφείο"},
+    {de:"Gehalt",en:"Salary",gr:"Μισθός"},{de:"Chef",en:"Boss",gr:"Αφεντικό"},
+    {de:"Kollege",en:"Colleague",gr:"Συνάδελφος"},{de:"Urlaub",en:"Holiday",gr:"Διακοπές"},
+    {de:"Arzt",en:"Doctor",gr:"Γιατρός"},{de:"Krankenhaus",en:"Hospital",gr:"Νοσοκομείο"},
+    {de:"krank",en:"Sick",gr:"Άρρωστος"},{de:"gesund",en:"Healthy",gr:"Υγιής"},
+    {de:"müde",en:"Tired",gr:"Κουρασμένος"},{de:"hungrig",en:"Hungry",gr:"Πεινασμένος"},
+    // Orte
+    {de:"Schule",en:"School",gr:"Σχολείο"},{de:"Supermarkt",en:"Supermarket",gr:"Σούπερ μάρκετ"},
+    {de:"Apotheke",en:"Pharmacy",gr:"Φαρμακείο"},{de:"Bank",en:"Bank",gr:"Τράπεζα"},
+    {de:"Post",en:"Post office",gr:"Ταχυδρομείο"},{de:"Restaurant",en:"Restaurant",gr:"Εστιατόριο"},
+    {de:"Polizei",en:"Police",gr:"Αστυνομία"},{de:"Rathaus",en:"Town hall",gr:"Δημαρχείο"},
+    {de:"Bibliothek",en:"Library",gr:"Βιβλιοθήκη"},{de:"Krankenversicherung",en:"Health insurance",gr:"Ασφάλεια υγείας"},
+    {de:"Ausweis",en:"ID card",gr:"Ταυτότητα"},{de:"Geburtsdatum",en:"Date of birth",gr:"Ημερομηνία γέννησης"},
+    {de:"Adresse",en:"Address",gr:"Διεύθυνση"},{de:"Nationalität",en:"Nationality",gr:"Εθνικότητα"},
+  ]},
+  reisen:{name:"Reisen",emoji:"✈️",words:[
+    // Flughafen & Flug
+    {de:"Flughafen",en:"Airport",gr:"Αεροδρόμιο"},{de:"Flugzeug",en:"Airplane",gr:"Αεροπλάνο"},
+    {de:"Koffer",en:"Suitcase",gr:"Βαλίτσα"},{de:"Handgepäck",en:"Hand luggage",gr:"Χειραποσκευή"},
+    {de:"Gepäck",en:"Luggage",gr:"Αποσκευές"},{de:"Reisepass",en:"Passport",gr:"Διαβατήριο"},
+    {de:"Boarding-Pass",en:"Boarding pass",gr:"Κάρτα επιβίβασης"},{de:"Flugsteig",en:"Gate",gr:"Πύλη"},
+    {de:"Sitz",en:"Seat",gr:"Θέση"},{de:"Fensterplatz",en:"Window seat",gr:"Θέση δίπλα στο παράθυρο"},
+    {de:"Gangplatz",en:"Aisle seat",gr:"Θέση δίπλα στο διάδρομο"},{de:"Verspätung",en:"Delay",gr:"Καθυστέρηση"},
+    {de:"Abflug",en:"Departure",gr:"Αναχώρηση"},{de:"Ankunft",en:"Arrival",gr:"Άφιξη"},
+    {de:"Verbindung",en:"Connection",gr:"Σύνδεση"},{de:"Transit",en:"Transit",gr:"Τράνζιτ"},
+    {de:"Sicherheitskontrolle",en:"Security check",gr:"Έλεγχος ασφαλείας"},{de:"Check-in",en:"Check-in",gr:"Τσεκ-ιν"},
+    // Grenze & Dokumente
+    {de:"Grenze",en:"Border",gr:"Σύνορο"},{de:"Zoll",en:"Customs",gr:"Τελωνείο"},
+    {de:"Visum",en:"Visa",gr:"Βίζα"},{de:"Zollfreigrenze",en:"Duty-free allowance",gr:"Αφορολόγητο όριο"},
+    {de:"Einreiseformular",en:"Entry form",gr:"Έντυπο εισόδου"},{de:"Aufenthaltsgenehmigung",en:"Residence permit",gr:"Άδεια παραμονής"},
+    // Hotel & Unterkunft
+    {de:"Hotel",en:"Hotel",gr:"Ξενοδοχείο"},{de:"Zimmer",en:"Room",gr:"Δωμάτιο"},
+    {de:"Einzelzimmer",en:"Single room",gr:"Μονόκλινο"},{de:"Doppelzimmer",en:"Double room",gr:"Δίκλινο"},
+    {de:"Reservierung",en:"Reservation",gr:"Κράτηση"},{de:"Rezeption",en:"Reception",gr:"Ρεσεψιόν"},
+    {de:"Schlüsselkarte",en:"Key card",gr:"Κάρτα κλειδί"},{de:"Frühstück inklusive",en:"Breakfast included",gr:"Πρωινό συμπεριλαμβάνεται"},
+    {de:"Halbpension",en:"Half board",gr:"Ημιδιατροφή"},{de:"Vollpension",en:"Full board",gr:"Πλήρης διατροφή"},
+    {de:"Check-out",en:"Check-out",gr:"Τσεκ-άουτ"},{de:"Zimmerdienst",en:"Room service",gr:"Υπηρεσία δωματίου"},
+    {de:"Klimaanlage",en:"Air conditioning",gr:"Κλιματισμός"},{de:"WLAN",en:"Wi-Fi",gr:"Wi-Fi"},
+    {de:"Safe",en:"Safe",gr:"Χρηματοκιβώτιο"},{de:"Minibar",en:"Minibar",gr:"Μίνι μπαρ"},
+    {de:"Pension",en:"Guesthouse",gr:"Πανσιόν"},{de:"Jugendherberge",en:"Youth hostel",gr:"Ξενώνας νέων"},
+    {de:"Campingplatz",en:"Campsite",gr:"Κάμπινγκ"},{de:"Unterkunft",en:"Accommodation",gr:"Κατάλυμα"},
+    {de:"Gepäckaufbewahrung",en:"Left luggage",gr:"Φύλαξη αποσκευών"},
+    // Transport
+    {de:"Ticket",en:"Ticket",gr:"Εισιτήριο"},{de:"Bahnhof",en:"Train station",gr:"Σταθμός"},
+    {de:"Fahrkarte",en:"Train ticket",gr:"Εισιτήριο τρένου"},{de:"Gleis",en:"Platform",gr:"Αποβάθρα"},
+    {de:"Schlafwagen",en:"Sleeping car",gr:"Βαγόνι κλινάμαξα"},{de:"Taxi",en:"Taxi",gr:"Ταξί"},
+    {de:"Mietwagen",en:"Rental car",gr:"Ενοικιαζόμενο αυτοκίνητο"},{de:"Bushaltestelle",en:"Bus stop",gr:"Στάση λεωφορείου"},
+    {de:"Fahrplan",en:"Timetable",gr:"Δρομολόγιο"},{de:"Hafen",en:"Port",gr:"Λιμάνι"},
+    {de:"Fähre",en:"Ferry",gr:"Φέρι"},
+    // Aktivitäten & Orte
+    {de:"Karte",en:"Map",gr:"Χάρτης"},{de:"Reisebüro",en:"Travel agency",gr:"Ταξιδιωτικό γραφείο"},
+    {de:"Reiseführer",en:"Travel guide",gr:"Ταξιδιωτικός οδηγός"},{de:"Sehenswürdigkeit",en:"Attraction",gr:"Αξιοθέατο"},
+    {de:"Museum",en:"Museum",gr:"Μουσείο"},{de:"Kirche",en:"Church",gr:"Εκκλησία"},
+    {de:"Schloss",en:"Castle",gr:"Κάστρο"},{de:"Stadtführung",en:"City tour",gr:"Ξενάγηση"},
+    {de:"Eintrittskarte",en:"Entry ticket",gr:"Εισιτήριο εισόδου"},{de:"Öffnungszeiten",en:"Opening hours",gr:"Ωράριο λειτουργίας"},
+    {de:"Souvenirs",en:"Souvenirs",gr:"Σουβενίρ"},{de:"Aussichtspunkt",en:"Viewpoint",gr:"Σημείο θέας"},
+    // Natur
+    {de:"Strand",en:"Beach",gr:"Παραλία"},{de:"Berg",en:"Mountain",gr:"Βουνό"},
+    {de:"Meer",en:"Sea",gr:"Θάλασσα"},{de:"See",en:"Lake",gr:"Λίμνη"},
+    {de:"Fluss",en:"River",gr:"Ποτάμι"},{de:"Insel",en:"Island",gr:"Νησί"},
+    {de:"Wald",en:"Forest",gr:"Δάσος"},{de:"Nationalpark",en:"National park",gr:"Εθνικό πάρκο"},
+    {de:"Wüste",en:"Desert",gr:"Έρημος"},
+    // Geld & Notfälle
+    {de:"Bankautomat",en:"ATM",gr:"ΑΤΜ"},{de:"Wechselstube",en:"Currency exchange",gr:"Συναλλαγματική"},
+    {de:"Trinkgeld",en:"Tip",gr:"Φιλοδώρημα"},{de:"kostenlos",en:"Free of charge",gr:"Δωρεάν"},
+    {de:"Notfall",en:"Emergency",gr:"Έκτακτη ανάγκη"},{de:"Polizei",en:"Police",gr:"Αστυνομία"},
+    {de:"Botschaft",en:"Embassy",gr:"Πρεσβεία"},{de:"Krankenwagen",en:"Ambulance",gr:"Ασθενοφόρο"},
+    {de:"Hilfe",en:"Help",gr:"Βοήθεια"},{de:"verloren",en:"Lost",gr:"Χαμένος"},
+    {de:"gestohlen",en:"Stolen",gr:"Κλεμμένος"},{de:"Unfall",en:"Accident",gr:"Ατύχημα"},
+    {de:"Reisekrankenversicherung",en:"Travel insurance",gr:"Ταξιδιωτική ασφάλεια"},
+    // Restaurant auf Reisen
+    {de:"Speisekarte",en:"Menu",gr:"Μενού"},{de:"Bestellung",en:"Order",gr:"Παραγγελία"},
+    {de:"Rechnung",en:"Bill",gr:"Λογαριασμός"},{de:"Tisch reservieren",en:"Book a table",gr:"Κράτηση τραπεζιού"},
+  ]},
+  business:{name:"Business",emoji:"💼",words:[
+    // Meetings & Kommunikation
+    {de:"Besprechung",en:"Meeting",gr:"Σύσκεψη"},{de:"Präsentation",en:"Presentation",gr:"Παρουσίαση"},
+    {de:"Bericht",en:"Report",gr:"Έκθεση"},{de:"Protokoll",en:"Minutes",gr:"Πρακτικά"},
+    {de:"Zusammenfassung",en:"Summary",gr:"Περίληψη"},{de:"Tagesordnung",en:"Agenda",gr:"Ημερήσια διάταξη"},
+    {de:"Aktionspunkt",en:"Action point",gr:"Σημείο δράσης"},{de:"Nachverfolgung",en:"Follow-up",gr:"Παρακολούθηση"},
+    {de:"Rückmeldung",en:"Feedback",gr:"Ανατροφοδότηση"},{de:"Telefonkonferenz",en:"Conference call",gr:"Τηλεδιάσκεψη"},
+    {de:"Videokonferenz",en:"Video conference",gr:"Βιντεοδιάσκεψη"},{de:"Konferenzraum",en:"Conference room",gr:"Αίθουσα συνεδριάσεων"},
+    {de:"Vertraulich",en:"Confidential",gr:"Εμπιστευτικός"},{de:"Dringend",en:"Urgent",gr:"Επείγον"},
+    {de:"Priorität",en:"Priority",gr:"Προτεραιότητα"},
+    // Verträge & Dokumente
+    {de:"Angebot",en:"Quote",gr:"Προσφορά"},{de:"Rechnung",en:"Invoice",gr:"Τιμολόγιο"},
+    {de:"Vertrag",en:"Contract",gr:"Σύμβαση"},{de:"Genehmigung",en:"Approval",gr:"Έγκριση"},
+    {de:"Antrag",en:"Request",gr:"Αίτηση"},{de:"Unterschrift",en:"Signature",gr:"Υπογραφή"},
+    {de:"Ausschreibung",en:"Tender",gr:"Διαγωνισμός"},{de:"Lizenz",en:"Licence",gr:"Άδεια"},
+    {de:"Vereinbarung",en:"Agreement",gr:"Συμφωνία"},{de:"Klausel",en:"Clause",gr:"Ρήτρα"},
+    // Kunden & Lieferanten
+    {de:"Kunde",en:"Client",gr:"Πελάτης"},{de:"Lieferant",en:"Supplier",gr:"Προμηθευτής"},
+    {de:"Bestellung",en:"Order",gr:"Παραγγελία"},{de:"Lieferung",en:"Delivery",gr:"Παράδοση"},
+    {de:"Termin",en:"Appointment",gr:"Ραντεβού"},{de:"Frist",en:"Deadline",gr:"Προθεσμία"},
+    {de:"Verhandlung",en:"Negotiation",gr:"Διαπραγμάτευση"},{de:"Reklamation",en:"Complaint",gr:"Παράπονο"},
+    {de:"Rücksendung",en:"Return",gr:"Επιστροφή"},{de:"Gutschrift",en:"Credit note",gr:"Πιστωτικό σημείωμα"},
+    // Finanzen
+    {de:"Budget",en:"Budget",gr:"Προϋπολογισμός"},{de:"Gewinn",en:"Profit",gr:"Κέρδος"},
+    {de:"Verlust",en:"Loss",gr:"Ζημία"},{de:"Umsatz",en:"Revenue",gr:"Κύκλος εργασιών"},
+    {de:"Kosten",en:"Costs",gr:"Κόστος"},{de:"Marge",en:"Margin",gr:"Περιθώριο κέρδους"},
+    {de:"Investition",en:"Investment",gr:"Επένδυση"},{de:"Cashflow",en:"Cash flow",gr:"Ταμειακή ροή"},
+    {de:"Bilanz",en:"Balance sheet",gr:"Ισολογισμός"},{de:"Steuer",en:"Tax",gr:"Φόρος"},
+    {de:"Mehrwertsteuer",en:"VAT",gr:"ΦΠΑ"},{de:"Abschreibung",en:"Depreciation",gr:"Απόσβεση"},
+    {de:"Liquidität",en:"Liquidity",gr:"Ρευστότητα"},{de:"Rendite",en:"Return",gr:"Απόδοση"},
+    {de:"Dividende",en:"Dividend",gr:"Μέρισμα"},
+    // Personal & Organisation
+    {de:"Mitarbeiter",en:"Employee",gr:"Εργαζόμενος"},{de:"Geschäftsführer",en:"Managing director",gr:"Διευθύνων σύμβουλος"},
+    {de:"Abteilung",en:"Department",gr:"Τμήμα"},{de:"Kollege",en:"Colleague",gr:"Συνάδελφος"},
+    {de:"Sekretärin",en:"Secretary",gr:"Γραμματέας"},{de:"Assistent",en:"Assistant",gr:"Βοηθός"},
+    {de:"Einstellung",en:"Hiring",gr:"Πρόσληψη"},{de:"Kündigung",en:"Dismissal",gr:"Απόλυση"},
+    {de:"Probezeit",en:"Probation",gr:"Δοκιμαστική περίοδος"},{de:"Arbeitsvertrag",en:"Employment contract",gr:"Σύμβαση εργασίας"},
+    {de:"Gehalt",en:"Salary",gr:"Μισθός"},{de:"Bonus",en:"Bonus",gr:"Μπόνους"},
+    {de:"Beförderung",en:"Promotion",gr:"Προαγωγή"},{de:"Weiterbildung",en:"Training",gr:"Κατάρτιση"},
+    {de:"Organigramm",en:"Organisation chart",gr:"Οργανόγραμμα"},
+    // Strategie & Marketing
+    {de:"Strategie",en:"Strategy",gr:"Στρατηγική"},{de:"Qualität",en:"Quality",gr:"Ποιότητα"},
+    {de:"Effizienz",en:"Efficiency",gr:"Αποδοτικότητα"},{de:"Markt",en:"Market",gr:"Αγορά"},
+    {de:"Wettbewerber",en:"Competitor",gr:"Ανταγωνιστής"},{de:"Marktanteil",en:"Market share",gr:"Μερίδιο αγοράς"},
+    {de:"Zielgruppe",en:"Target group",gr:"Ομάδα-στόχος"},{de:"Werbung",en:"Advertising",gr:"Διαφήμιση"},
+    {de:"Kampagne",en:"Campaign",gr:"Καμπάνια"},{de:"Marke",en:"Brand",gr:"Εμπορική μάρκα"},
+    {de:"Messe",en:"Trade fair",gr:"Έκθεση"},
+    // Buchhaltung & Einkauf
+    {de:"Buchhaltung",en:"Accounting",gr:"Λογιστήριο"},{de:"Einkauf",en:"Purchasing",gr:"Αγορές"},
+    {de:"Verkauf",en:"Sales",gr:"Πωλήσεις"},{de:"Projekt",en:"Project",gr:"Έργο"},
+    {de:"Meilenstein",en:"Milestone",gr:"Ορόσημο"},{de:"Ressource",en:"Resource",gr:"Πόρος"},
+    {de:"Risiko",en:"Risk",gr:"Κίνδυνος"},{de:"Eskalation",en:"Escalation",gr:"Κλιμάκωση"},
+    {de:"Lieferkette",en:"Supply chain",gr:"Αλυσίδα εφοδιασμού"},{de:"Abnahme",en:"Sign-off",gr:"Παραλαβή"},
+  ]},
+  metallbau:{name:"Metallbau",emoji:"⚙️",words:[
+    // Materialien - Einfach
+    {de:"Stahl",en:"Steel",gr:"Ατσάλι"},{de:"Eisen",en:"Iron",gr:"Σίδηρος"},
+    {de:"Aluminium",en:"Aluminium",gr:"Αλουμίνιο"},{de:"Kupfer",en:"Copper",gr:"Χαλκός"},
+    {de:"Messing",en:"Brass",gr:"Ορείχαλκος"},{de:"Bronze",en:"Bronze",gr:"Μπρούτζος"},
+    {de:"Zink",en:"Zinc",gr:"Ψευδάργυρος"},{de:"Chrom",en:"Chrome",gr:"Χρώμιο"},
+    {de:"Nickel",en:"Nickel",gr:"Νικέλιο"},{de:"Titan",en:"Titanium",gr:"Τιτάνιο"},
+    {de:"Edelstahl",en:"Stainless steel",gr:"Ανοξείδωτος χάλυβας"},{de:"Gusseisen",en:"Cast iron",gr:"Χυτοσίδηρος"},
+    {de:"Legierung",en:"Alloy",gr:"Κράμα"},
+    // Profile & Formen
+    {de:"Blech",en:"Sheet metal",gr:"Λαμαρίνα"},{de:"Rohr",en:"Pipe",gr:"Σωλήνας"},
+    {de:"Profil",en:"Section",gr:"Προφίλ"},{de:"Träger",en:"Beam",gr:"Δοκός"},
+    {de:"Rundstab",en:"Round bar",gr:"Στρογγυλή ράβδος"},{de:"Flachstahl",en:"Flat bar",gr:"Επίπεδη ράβδος"},
+    {de:"Vierkant",en:"Square bar",gr:"Τετραγωνική ράβδος"},{de:"Winkeleisen",en:"Angle iron",gr:"Γωνιακός σίδηρος"},
+    {de:"Hohlprofil",en:"Hollow section",gr:"Κοίλο προφίλ"},{de:"T-Träger",en:"T-beam",gr:"Δοκός T"},
+    {de:"I-Träger",en:"I-beam",gr:"Δοκός I"},
+    // Verbindungen
+    {de:"Schraube",en:"Bolt",gr:"Βίδα"},{de:"Mutter",en:"Nut",gr:"Παξιμάδι"},
+    {de:"Unterlegscheibe",en:"Washer",gr:"Ροδέλα"},{de:"Niet",en:"Rivet",gr:"Πριτσίνι"},
+    {de:"Flansch",en:"Flange",gr:"Φλάντζα"},{de:"Passfeder",en:"Key",gr:"Φτερό"},
+    {de:"Hülse",en:"Bush",gr:"Θηλιά"},{de:"Muffe",en:"Sleeve",gr:"Μούφα"},
+    {de:"Kupplung",en:"Coupling",gr:"Σύνδεσμος"},
+    // Bearbeitung
+    {de:"Schweißen",en:"Welding",gr:"Συγκόλληση"},{de:"Schneiden",en:"Cutting",gr:"Κόψιμο"},
+    {de:"Biegen",en:"Bending",gr:"Κάμψη"},{de:"Bohren",en:"Drilling",gr:"Τρύπημα"},
+    {de:"Schleifen",en:"Grinding",gr:"Λείανση"},{de:"Fräsen",en:"Milling",gr:"Φρεζάρισμα"},
+    {de:"Drehen",en:"Turning",gr:"Τόρνευση"},{de:"Stanzen",en:"Stamping",gr:"Διάτρηση"},
+    {de:"Pressen",en:"Pressing",gr:"Πίεση"},{de:"Walzen",en:"Rolling",gr:"Έλαση"},
+    {de:"Abkanten",en:"Press braking",gr:"Κάμψη φύλλου"},{de:"Polieren",en:"Polishing",gr:"Γυάλισμα"},
+    {de:"Sandstrahlen",en:"Sand blasting",gr:"Αμμοβολή"},{de:"Laserschneiden",en:"Laser cutting",gr:"Κοπή laser"},
+    {de:"Plasmaschneiden",en:"Plasma cutting",gr:"Κοπή πλάσματος"},
+    // Maße & Messung
+    {de:"Messen",en:"Measuring",gr:"Μέτρηση"},{de:"Länge",en:"Length",gr:"Μήκος"},
+    {de:"Breite",en:"Width",gr:"Πλάτος"},{de:"Dicke",en:"Thickness",gr:"Πάχος"},
+    {de:"Höhe",en:"Height",gr:"Ύψος"},{de:"Winkel",en:"Angle",gr:"Γωνία"},
+    {de:"Durchmesser",en:"Diameter",gr:"Διάμετρος"},{de:"Radius",en:"Radius",gr:"Ακτίνα"},
+    {de:"Tiefe",en:"Depth",gr:"Βάθος"},{de:"Fläche",en:"Area",gr:"Εμβαδόν"},
+    {de:"Volumen",en:"Volume",gr:"Όγκος"},
+    // Qualität & Eigenschaften
+    {de:"Toleranz",en:"Tolerance",gr:"Ανοχή"},{de:"Gewicht",en:"Weight",gr:"Βάρος"},
+    {de:"Festigkeit",en:"Strength",gr:"Αντοχή"},{de:"Härte",en:"Hardness",gr:"Σκληρότητα"},
+    {de:"Zugfestigkeit",en:"Tensile strength",gr:"Εφελκυστική αντοχή"},{de:"Streckgrenze",en:"Yield strength",gr:"Όριο διαρροής"},
+    {de:"Elastizitätsmodul",en:"Young's modulus",gr:"Μέτρο ελαστικότητας"},{de:"Rauheit",en:"Roughness",gr:"Τραχύτητα"},
+    {de:"Ebenheit",en:"Flatness",gr:"Επιπεδότητα"},{de:"Rundheit",en:"Roundness",gr:"Στρογγυλότητα"},
+    {de:"Rechtwinkligkeit",en:"Squareness",gr:"Ορθογωνιότητα"},{de:"Parallelität",en:"Parallelism",gr:"Παραλληλισμός"},
+    // Oberfläche & Korrosionsschutz
+    {de:"Korrosion",en:"Corrosion",gr:"Διάβρωση"},{de:"Verzinkung",en:"Galvanizing",gr:"Γαλβάνισμα"},
+    {de:"Lackierung",en:"Coating",gr:"Βαφή"},{de:"Eloxieren",en:"Anodising",gr:"Ανοδίωση"},
+    {de:"Verzinnen",en:"Tinning",gr:"Επικασσιτέρωση"},{de:"Rostschutz",en:"Rust protection",gr:"Αντισκωριακή προστασία"},
+    // Konstruktion
+    {de:"Konstruktion",en:"Design",gr:"Κατασκευή"},{de:"Zeichnung",en:"Drawing",gr:"Σχέδιο"},
+    {de:"Normteil",en:"Standard part",gr:"Τυποποιημένο εξάρτημα"},{de:"Stahlsorte",en:"Steel grade",gr:"Ποιότητα χάλυβα"},
+    {de:"Schweißnaht",en:"Weld seam",gr:"Ραφή συγκόλλησης"},{de:"Bohrung",en:"Bore hole",gr:"Οπή"},
+    {de:"Gewinde",en:"Thread",gr:"Σπείρωμα"},{de:"Drehmoment",en:"Torque",gr:"Ροπή στρέψης"},
+    {de:"Belastung",en:"Load",gr:"Φορτίο"},{de:"Werkzeug",en:"Tool",gr:"Εργαλείο"},
+    {de:"Wärmeausdehnung",en:"Thermal expansion",gr:"Θερμική διαστολή"},{de:"Leitfähigkeit",en:"Conductivity",gr:"Αγωγιμότητα"},
+  ]},
+  industrie:{name:"Industrie",emoji:"🏭",words:[
+    // Maschinen & Geräte
+    {de:"Maschine",en:"Machine",gr:"Μηχανή"},{de:"Motor",en:"Motor",gr:"Κινητήρας"},
+    {de:"Pumpe",en:"Pump",gr:"Αντλία"},{de:"Ventil",en:"Valve",gr:"Βαλβίδα"},
+    {de:"Sensor",en:"Sensor",gr:"Αισθητήρας"},{de:"Kompressor",en:"Compressor",gr:"Κομπρεσέρ"},
+    {de:"Frequenzumrichter",en:"Frequency converter",gr:"Μετατροπέας συχνότητας"},{de:"Servomotor",en:"Servo motor",gr:"Σερβοκινητήρας"},
+    {de:"Roboter",en:"Robot",gr:"Ρομπότ"},{de:"Kran",en:"Crane",gr:"Γερανός"},
+    {de:"Gabelstapler",en:"Forklift",gr:"Περονοφόρο"},{de:"Förderband",en:"Conveyor belt",gr:"Ταινιόδρομος"},
+    // Steuerung & Automatisierung
+    {de:"Steuerung",en:"Control",gr:"Έλεγχος"},{de:"Automatisierung",en:"Automation",gr:"Αυτοματισμός"},
+    {de:"SPS",en:"PLC",gr:"PLC"},{de:"Schaltschrank",en:"Control cabinet",gr:"Ηλεκτρικός πίνακας"},
+    {de:"Programm",en:"Program",gr:"Πρόγραμμα"},{de:"Schnittstelle",en:"Interface",gr:"Διεπαφή"},
+    {de:"CNC",en:"CNC",gr:"CNC"},{de:"CAD",en:"CAD",gr:"CAD"},
+    {de:"Digitalisierung",en:"Digitalisation",gr:"Ψηφιοποίηση"},{de:"Industrie 4.0",en:"Industry 4.0",gr:"Βιομηχανία 4.0"},
+    {de:"Vernetzung",en:"Networking",gr:"Δικτύωση"},{de:"Simulation",en:"Simulation",gr:"Προσομοίωση"},
+    // Produktion & Fertigung
+    {de:"Produktion",en:"Production",gr:"Παραγωγή"},{de:"Fertigung",en:"Manufacturing",gr:"Κατασκευή"},
+    {de:"Montage",en:"Assembly",gr:"Συναρμολόγηση"},{de:"Serienproduktion",en:"Series production",gr:"Σειριακή παραγωγή"},
+    {de:"Rohstoff",en:"Raw material",gr:"Πρώτη ύλη"},{de:"Halbzeug",en:"Semi-finished product",gr:"Ημιτελές προϊόν"},
+    {de:"Fertigteil",en:"Finished part",gr:"Τελικό εξάρτημα"},{de:"Ausschuss",en:"Reject",gr:"Άχρηστο"},
+    {de:"Nacharbeit",en:"Rework",gr:"Επανεπεξεργασία"},{de:"Schicht",en:"Shift",gr:"Βάρδια"},
+    {de:"Nachtschicht",en:"Night shift",gr:"Νυχτερινή βάρδια"},{de:"Fabrik",en:"Factory",gr:"Εργοστάσιο"},
+    // Qualitätssicherung
+    {de:"Qualitätskontrolle",en:"Quality control",gr:"Έλεγχος ποιότητας"},{de:"Prüfung",en:"Testing",gr:"Δοκιμή"},
+    {de:"Zertifizierung",en:"Certification",gr:"Πιστοποίηση"},{de:"ISO-Norm",en:"ISO standard",gr:"Πρότυπο ISO"},
+    {de:"Kalibrierung",en:"Calibration",gr:"Βαθμονόμηση"},{de:"Prüfprotokoll",en:"Test record",gr:"Πρωτόκολλο δοκιμής"},
+    {de:"Fehler",en:"Defect",gr:"Ελάττωμα"},{de:"Korrektur",en:"Correction",gr:"Διόρθωση"},
+    {de:"Verbesserung",en:"Improvement",gr:"Βελτίωση"},{de:"Lean",en:"Lean",gr:"Λιτή παραγωγή"},
+    {de:"Reklamation",en:"Complaint",gr:"Παράπονο"},
+    // Sicherheit & Umwelt
+    {de:"Sicherheit",en:"Safety",gr:"Ασφάλεια"},{de:"Schutzausrüstung",en:"Protective equipment",gr:"Εξοπλισμός προστασίας"},
+    {de:"Unfallverhütung",en:"Accident prevention",gr:"Πρόληψη ατυχημάτων"},{de:"Brandschutz",en:"Fire protection",gr:"Πυροπροστασία"},
+    {de:"Chemikalien",en:"Chemicals",gr:"Χημικές ουσίες"},{de:"Abfall",en:"Waste",gr:"Απόβλητα"},
+    {de:"Umweltschutz",en:"Environmental protection",gr:"Προστασία περιβάλλοντος"},{de:"Emission",en:"Emission",gr:"Εκπομπή"},
+    {de:"Risikobewertung",en:"Risk assessment",gr:"Εκτίμηση κινδύνου"},
+    // Antrieb & Fluidtechnik
+    {de:"Druckluft",en:"Compressed air",gr:"Πεπιεσμένος αέρας"},{de:"Hydraulik",en:"Hydraulics",gr:"Υδραυλικά"},
+    {de:"Pneumatik",en:"Pneumatics",gr:"Πνευματικά"},{de:"Antrieb",en:"Drive",gr:"Κίνηση"},
+    {de:"Getriebe",en:"Gearbox",gr:"Κιβώτιο ταχυτήτων"},{de:"Dichtung",en:"Seal",gr:"Στεγανωτικό"},
+    {de:"Filter",en:"Filter",gr:"Φίλτρο"},{de:"Kühlung",en:"Cooling",gr:"Ψύξη"},
+    {de:"Schmierung",en:"Lubrication",gr:"Λίπανση"},{de:"Druck",en:"Pressure",gr:"Πίεση"},
+    {de:"Drehzahl",en:"RPM",gr:"Στροφές"},{de:"Leistung",en:"Power",gr:"Απόδοση"},
+    {de:"Energie",en:"Energy",gr:"Ενέργεια"},
+    // Logistik & Wartung
+    {de:"Lager",en:"Warehouse",gr:"Αποθήκη"},{de:"Kommissionierung",en:"Order picking",gr:"Παρέλαβή παραγγελίας"},
+    {de:"Palette",en:"Pallet",gr:"Παλέτα"},{de:"Lieferschein",en:"Delivery note",gr:"Δελτίο αποστολής"},
+    {de:"Lieferkette",en:"Supply chain",gr:"Αλυσίδα εφοδιασμού"},{de:"Wartung",en:"Maintenance",gr:"Συντήρηση"},
+    {de:"Inspektion",en:"Inspection",gr:"Επιθεώρηση"},{de:"Ersatzteil",en:"Spare part",gr:"Ανταλλακτικό"},
+    {de:"Verschleiß",en:"Wear",gr:"Φθορά"},{de:"Ausfall",en:"Failure",gr:"Βλάβη"},
+    {de:"Störung",en:"Fault",gr:"Διαταραχή"},{de:"Lebensdauer",en:"Service life",gr:"Διάρκεια ζωής"},
+    {de:"Wartungsplan",en:"Maintenance plan",gr:"Πρόγραμμα συντήρησης"},
+  ]},
+  essen:{name:"Essen & Trinken",emoji:"🍽️",words:[
+    // Obst
+    {de:"Apfel",en:"Apple",gr:"Μήλο"},{de:"Birne",en:"Pear",gr:"Αχλάδι"},
+    {de:"Banane",en:"Banana",gr:"Μπανάνα"},{de:"Orange",en:"Orange",gr:"Πορτοκάλι"},
+    {de:"Zitrone",en:"Lemon",gr:"Λεμόνι"},{de:"Erdbeere",en:"Strawberry",gr:"Φράουλα"},
+    {de:"Weintraube",en:"Grape",gr:"Σταφύλι"},{de:"Wassermelone",en:"Watermelon",gr:"Καρπούζι"},
+    {de:"Pfirsich",en:"Peach",gr:"Ροδάκινο"},{de:"Kirsche",en:"Cherry",gr:"Κεράσι"},
+    {de:"Mango",en:"Mango",gr:"Μάνγκο"},{de:"Ananas",en:"Pineapple",gr:"Ανανάς"},
+    {de:"Kiwi",en:"Kiwi",gr:"Κίβι"},{de:"Pflaume",en:"Plum",gr:"Δαμάσκηνο"},
+    // Gemüse
+    {de:"Tomate",en:"Tomato",gr:"Ντομάτα"},{de:"Gurke",en:"Cucumber",gr:"Αγγούρι"},
+    {de:"Paprika",en:"Bell pepper",gr:"Πιπεριά"},{de:"Zwiebel",en:"Onion",gr:"Κρεμμύδι"},
+    {de:"Knoblauch",en:"Garlic",gr:"Σκόρδο"},{de:"Karotte",en:"Carrot",gr:"Καρότο"},
+    {de:"Kartoffel",en:"Potato",gr:"Πατάτα"},{de:"Kopfsalat",en:"Lettuce",gr:"Μαρούλι"},
+    {de:"Spinat",en:"Spinach",gr:"Σπανάκι"},{de:"Brokkoli",en:"Broccoli",gr:"Μπρόκολο"},
+    {de:"Blumenkohl",en:"Cauliflower",gr:"Κουνουπίδι"},{de:"Zucchini",en:"Zucchini",gr:"Κολοκυθάκι"},
+    {de:"Aubergine",en:"Aubergine",gr:"Μελιτζάνα"},{de:"Mais",en:"Corn",gr:"Καλαμπόκι"},
+    {de:"Erbsen",en:"Peas",gr:"Αρακάς"},{de:"Pilze",en:"Mushrooms",gr:"Μανιτάρια"},
+    {de:"Linsen",en:"Lentils",gr:"Φακές"},{de:"Bohnen",en:"Beans",gr:"Φασόλια"},
+    // Milch & Eier
+    {de:"Milch",en:"Milk",gr:"Γάλα"},{de:"Butter",en:"Butter",gr:"Βούτυρο"},
+    {de:"Sahne",en:"Cream",gr:"Κρέμα γάλακτος"},{de:"Joghurt",en:"Yoghurt",gr:"Γιαούρτι"},
+    {de:"Käse",en:"Cheese",gr:"Τυρί"},{de:"Ei",en:"Egg",gr:"Αυγό"},
+    // Fleisch & Fisch
+    {de:"Fleisch",en:"Meat",gr:"Κρέας"},{de:"Hähnchen",en:"Chicken",gr:"Κοτόπουλο"},
+    {de:"Rindfleisch",en:"Beef",gr:"Μοσχάρι"},{de:"Schweinefleisch",en:"Pork",gr:"Χοιρινό"},
+    {de:"Wurst",en:"Sausage",gr:"Λουκάνικο"},{de:"Schinken",en:"Ham",gr:"Ζαμπόν"},
+    {de:"Speck",en:"Bacon",gr:"Μπέικον"},{de:"Hackfleisch",en:"Mince",gr:"Κιμάς"},
+    {de:"Fisch",en:"Fish",gr:"Ψάρι"},{de:"Lachs",en:"Salmon",gr:"Σολομός"},
+    {de:"Thunfisch",en:"Tuna",gr:"Τόνος"},{de:"Garnelen",en:"Shrimps",gr:"Γαρίδες"},
+    {de:"Muscheln",en:"Mussels",gr:"Μύδια"},
+    // Grundnahrungsmittel
+    {de:"Brot",en:"Bread",gr:"Ψωμί"},{de:"Nudeln",en:"Pasta",gr:"Ζυμαρικά"},
+    {de:"Reis",en:"Rice",gr:"Ρύζι"},{de:"Mehl",en:"Flour",gr:"Αλεύρι"},
+    {de:"Zucker",en:"Sugar",gr:"Ζάχαρη"},{de:"Salz",en:"Salt",gr:"Αλάτι"},
+    {de:"Pfeffer",en:"Pepper",gr:"Πιπέρι"},{de:"Öl",en:"Oil",gr:"Λάδι"},
+    {de:"Essig",en:"Vinegar",gr:"Ξύδι"},{de:"Honig",en:"Honey",gr:"Μέλι"},
+    {de:"Marmelade",en:"Jam",gr:"Μαρμελάδα"},{de:"Schokolade",en:"Chocolate",gr:"Σοκολάτα"},
+    {de:"Gewürze",en:"Spices",gr:"Μπαχαρικά"},{de:"Zimt",en:"Cinnamon",gr:"Κανέλα"},
+    // Getränke
+    {de:"Wasser",en:"Water",gr:"Νερό"},{de:"Kaffee",en:"Coffee",gr:"Καφές"},
+    {de:"Tee",en:"Tea",gr:"Τσάι"},{de:"Saft",en:"Juice",gr:"Χυμός"},
+    {de:"Bier",en:"Beer",gr:"Μπύρα"},{de:"Wein",en:"Wine",gr:"Κρασί"},
+    {de:"Rotwein",en:"Red wine",gr:"Κόκκινο κρασί"},{de:"Weißwein",en:"White wine",gr:"Λευκό κρασί"},
+    {de:"Mineralwasser",en:"Mineral water",gr:"Μεταλλικό νερό"},{de:"Limonade",en:"Lemonade",gr:"Λεμονάδα"},
+    {de:"Espresso",en:"Espresso",gr:"Εσπρέσο"},{de:"Milchkaffee",en:"Latte",gr:"Λάτε"},
+    // Mahlzeiten & Küche
+    {de:"Frühstück",en:"Breakfast",gr:"Πρωινό"},{de:"Mittagessen",en:"Lunch",gr:"Μεσημεριανό"},
+    {de:"Abendessen",en:"Dinner",gr:"Βραδινό"},{de:"Suppe",en:"Soup",gr:"Σούπα"},
+    {de:"Salat",en:"Salad",gr:"Σαλάτα"},{de:"Kuchen",en:"Cake",gr:"Κέικ"},
+    {de:"Eis",en:"Ice cream",gr:"Παγωτό"},{de:"Pfannkuchen",en:"Pancake",gr:"Τηγανίτα"},
+    // Kochen & Geschmack
+    {de:"kochen",en:"To cook",gr:"Μαγειρεύω"},{de:"backen",en:"To bake",gr:"Ψήνω"},
+    {de:"braten",en:"To fry",gr:"Τηγανίζω"},{de:"grillen",en:"To grill",gr:"Ψήνω στη σχάρα"},
+    {de:"süß",en:"Sweet",gr:"Γλυκός"},{de:"sauer",en:"Sour",gr:"Ξινός"},
+    {de:"salzig",en:"Salty",gr:"Αλμυρός"},{de:"scharf",en:"Spicy",gr:"Καυτερός"},
+    {de:"lecker",en:"Delicious",gr:"Νόστιμος"},{de:"frisch",en:"Fresh",gr:"Φρέσκος"},
+    // Restaurant
+    {de:"Speisekarte",en:"Menu",gr:"Μενού"},{de:"Vorspeise",en:"Starter",gr:"Ορεκτικό"},
+    {de:"Hauptgericht",en:"Main course",gr:"Κυρίως πιάτο"},{de:"Nachspeise",en:"Dessert",gr:"Επιδόρπιο"},
+    {de:"Rechnung",en:"Bill",gr:"Λογαριασμός"},{de:"Trinkgeld",en:"Tip",gr:"Φιλοδώρημα"},
+    {de:"vegetarisch",en:"Vegetarian",gr:"Χορτοφαγικό"},{de:"vegan",en:"Vegan",gr:"Βίγκαν"},
+    {de:"glutenfrei",en:"Gluten-free",gr:"Χωρίς γλουτένη"},
+    // Küchengeräte
+    {de:"Pfanne",en:"Pan",gr:"Τηγάνι"},{de:"Topf",en:"Pot",gr:"Κατσαρόλα"},
+    {de:"Messer",en:"Knife",gr:"Μαχαίρι"},{de:"Gabel",en:"Fork",gr:"Πιρούνι"},
+    {de:"Löffel",en:"Spoon",gr:"Κουτάλι"},{de:"Teller",en:"Plate",gr:"Πιάτο"},
+    {de:"Glas",en:"Glass",gr:"Ποτήρι"},{de:"Schüssel",en:"Bowl",gr:"Μπολ"},
+  ]},
+  farben:{name:"Farben & Zahlen",emoji:"🎨",words:[
+    // Grundfarben
+    {de:"Rot",en:"Red",gr:"Κόκκινο"},{de:"Blau",en:"Blue",gr:"Μπλε"},
+    {de:"Grün",en:"Green",gr:"Πράσινο"},{de:"Gelb",en:"Yellow",gr:"Κίτρινο"},
+    {de:"Orange",en:"Orange",gr:"Πορτοκαλί"},{de:"Lila",en:"Purple",gr:"Μωβ"},
+    {de:"Rosa",en:"Pink",gr:"Ροζ"},{de:"Braun",en:"Brown",gr:"Καφέ"},
+    {de:"Schwarz",en:"Black",gr:"Μαύρο"},{de:"Weiß",en:"White",gr:"Άσπρο"},
+    {de:"Grau",en:"Gray",gr:"Γκρι"},{de:"Silber",en:"Silver",gr:"Ασημί"},
+    {de:"Gold",en:"Gold",gr:"Χρυσό"},{de:"Türkis",en:"Turquoise",gr:"Τυρκουάζ"},
+    {de:"Beige",en:"Beige",gr:"Μπεζ"},
+    // Farbtöne & Nuancen
+    {de:"Dunkelblau",en:"Dark blue",gr:"Σκούρο μπλε"},{de:"Hellblau",en:"Light blue",gr:"Ανοιχτό μπλε"},
+    {de:"Dunkelgrün",en:"Dark green",gr:"Σκούρο πράσινο"},{de:"Hellgrün",en:"Light green",gr:"Ανοιχτό πράσινο"},
+    {de:"Dunkelrot",en:"Dark red",gr:"Σκούρο κόκκινο"},{de:"Weinrot",en:"Burgundy",gr:"Μπορντό"},
+    {de:"Himmelblau",en:"Sky blue",gr:"Γαλάζιος"},{de:"Mintgrün",en:"Mint green",gr:"Μέντα πράσινο"},
+    {de:"Koralle",en:"Coral",gr:"Κοράλλι"},{de:"Lavendel",en:"Lavender",gr:"Λεβάντα"},
+    {de:"Elfenbein",en:"Ivory",gr:"Ελεφαντόδοντο"},{de:"Khaki",en:"Khaki",gr:"Χακί"},
+    {de:"Dunkelgrau",en:"Dark gray",gr:"Σκούρο γκρι"},{de:"Hellgrau",en:"Light gray",gr:"Ανοιχτό γκρι"},
+    {de:"Neongelb",en:"Neon yellow",gr:"Νέον κίτρινο"},
+    // Design & Muster
+    {de:"Glänzend",en:"Shiny",gr:"Γυαλιστερό"},{de:"Matt",en:"Matt",gr:"Ματ"},
+    {de:"Transparent",en:"Transparent",gr:"Διάφανο"},{de:"Bunt",en:"Colourful",gr:"Πολύχρωμο"},
+    {de:"Einfarbig",en:"Monochrome",gr:"Μονόχρωμο"},{de:"Leuchtend",en:"Bright",gr:"Λαμπερό"},
+    {de:"Pastellfarben",en:"Pastel colours",gr:"Παστέλ χρώματα"},{de:"Muster",en:"Pattern",gr:"Σχέδιο"},
+    {de:"Streifen",en:"Stripe",gr:"Ρίγα"},{de:"Kariert",en:"Checked",gr:"Καρό"},
+    {de:"Dunkel",en:"Dark",gr:"Σκούρος"},{de:"Hell",en:"Light",gr:"Ανοιχτός"},
+    // Zahlen 0–20
+    {de:"Null",en:"Zero",gr:"Μηδέν"},{de:"Eins",en:"One",gr:"Ένα"},
+    {de:"Zwei",en:"Two",gr:"Δύο"},{de:"Drei",en:"Three",gr:"Τρία"},
+    {de:"Vier",en:"Four",gr:"Τέσσερα"},{de:"Fünf",en:"Five",gr:"Πέντε"},
+    {de:"Sechs",en:"Six",gr:"Έξι"},{de:"Sieben",en:"Seven",gr:"Επτά"},
+    {de:"Acht",en:"Eight",gr:"Οκτώ"},{de:"Neun",en:"Nine",gr:"Εννέα"},
+    {de:"Zehn",en:"Ten",gr:"Δέκα"},{de:"Elf",en:"Eleven",gr:"Έντεκα"},
+    {de:"Zwölf",en:"Twelve",gr:"Δώδεκα"},{de:"Dreizehn",en:"Thirteen",gr:"Δεκατρία"},
+    {de:"Vierzehn",en:"Fourteen",gr:"Δεκατέσσερα"},{de:"Fünfzehn",en:"Fifteen",gr:"Δεκαπέντε"},
+    {de:"Sechzehn",en:"Sixteen",gr:"Δεκαέξι"},{de:"Siebzehn",en:"Seventeen",gr:"Δεκαεπτά"},
+    {de:"Achtzehn",en:"Eighteen",gr:"Δεκαοκτώ"},{de:"Neunzehn",en:"Nineteen",gr:"Δεκαεννέα"},
+    {de:"Zwanzig",en:"Twenty",gr:"Είκοσι"},
+    // Zahlen größer
+    {de:"Dreißig",en:"Thirty",gr:"Τριάντα"},{de:"Vierzig",en:"Forty",gr:"Σαράντα"},
+    {de:"Fünfzig",en:"Fifty",gr:"Πενήντα"},{de:"Sechzig",en:"Sixty",gr:"Εξήντα"},
+    {de:"Siebzig",en:"Seventy",gr:"Εβδομήντα"},{de:"Achtzig",en:"Eighty",gr:"Ογδόντα"},
+    {de:"Neunzig",en:"Ninety",gr:"Ενενήντα"},{de:"Hundert",en:"Hundred",gr:"Εκατό"},
+    {de:"Tausend",en:"Thousand",gr:"Χίλια"},{de:"Million",en:"Million",gr:"Εκατομμύριο"},
+    // Formen
+    {de:"Kreis",en:"Circle",gr:"Κύκλος"},{de:"Quadrat",en:"Square",gr:"Τετράγωνο"},
+    {de:"Dreieck",en:"Triangle",gr:"Τρίγωνο"},{de:"Rechteck",en:"Rectangle",gr:"Ορθογώνιο"},
+    {de:"Oval",en:"Oval",gr:"Οβάλ"},{de:"Stern",en:"Star",gr:"Αστέρι"},
+    {de:"Würfel",en:"Cube",gr:"Κύβος"},{de:"Kugel",en:"Sphere",gr:"Σφαίρα"},
+    {de:"Linie",en:"Line",gr:"Γραμμή"},{de:"Punkt",en:"Dot",gr:"Τελεία"},
+    // Größen & Mathe
+    {de:"groß",en:"Big",gr:"Μεγάλος"},{de:"klein",en:"Small",gr:"Μικρός"},
+    {de:"lang",en:"Long",gr:"Μακρύς"},{de:"kurz",en:"Short",gr:"Κοντός"},
+    {de:"breit",en:"Wide",gr:"Φαρδύς"},{de:"schmal",en:"Narrow",gr:"Στενός"},
+    {de:"dick",en:"Thick",gr:"Χοντρός"},{de:"dünn",en:"Thin",gr:"Λεπτός"},
+    {de:"Prozent",en:"Percent",gr:"Τοις εκατό"},{de:"Hälfte",en:"Half",gr:"Μισό"},
+    {de:"Viertel",en:"Quarter",gr:"Τέταρτο"},{de:"Erste",en:"First",gr:"Πρώτος"},
+    {de:"Letzte",en:"Last",gr:"Τελευταίος"},
+  ]},
+  supermarkt:{name:"Im Supermarkt",emoji:"🛒",words:[
+    {de:"Einkaufswagen",en:"Shopping cart",gr:"Καρότσι"},{de:"Einkaufskorb",en:"Shopping basket",gr:"Καλάθι αγορών"},
+    {de:"Kasse",en:"Checkout",gr:"Ταμείο"},{de:"Selbstbedienungskasse",en:"Self-checkout",gr:"Αυτόματο ταμείο"},
+    {de:"Rabatt",en:"Discount",gr:"Έκπτωση"},{de:"Angebot",en:"Special offer",gr:"Προσφορά"},
+    {de:"Preis",en:"Price",gr:"Τιμή"},{de:"Preisschild",en:"Price tag",gr:"Ετικέτα τιμής"},
+    {de:"Quittung",en:"Receipt",gr:"Απόδειξη"},{de:"Tüte",en:"Bag",gr:"Σακούλα"},
+    {de:"Tragetasche",en:"Carrier bag",gr:"Τσάντα μεταφοράς"},{de:"Gang",en:"Aisle",gr:"Διάδρομος"},
+    {de:"Regal",en:"Shelf",gr:"Ράφι"},{de:"Kühlregal",en:"Refrigerated shelf",gr:"Ψυγείο ράφι"},
+    {de:"Tiefkühlkost",en:"Frozen food",gr:"Κατεψυγμένα"},{de:"Bäckerei",en:"Bakery",gr:"Αρτοποιείο"},
+    {de:"Fleischtheke",en:"Meat counter",gr:"Κρεοπωλείο"},{de:"Fischtheke",en:"Fish counter",gr:"Ψαράδικο"},
+    {de:"Käsetheke",en:"Cheese counter",gr:"Τυροπωλείο"},{de:"Obst und Gemüse",en:"Fruit and vegetables",gr:"Φρούτα και λαχανικά"},
+    {de:"Haltbarkeitsdatum",en:"Expiry date",gr:"Ημερομηνία λήξης"},{de:"Zutat",en:"Ingredient",gr:"Συστατικό"},
+    {de:"Nährwert",en:"Nutritional value",gr:"Διατροφική αξία"},{de:"Kalorien",en:"Calories",gr:"Θερμίδες"},
+    {de:"Glutenfrei",en:"Gluten-free",gr:"Χωρίς γλουτένη"},{de:"Laktosefrei",en:"Lactose-free",gr:"Χωρίς λακτόζη"},
+    {de:"Vegan",en:"Vegan",gr:"Βίγκαν"},{de:"Vegetarisch",en:"Vegetarian",gr:"Χορτοφαγικό"},
+    {de:"Biologisch",en:"Organic",gr:"Βιολογικό"},{de:"Sonderangebot",en:"Special offer",gr:"Ειδική προσφορά"},
+    {de:"Treuekarte",en:"Loyalty card",gr:"Κάρτα πιστότητας"},{de:"Kassenbon",en:"Till receipt",gr:"Απόδειξη ταμείου"},
+    {de:"Rückgabe",en:"Return",gr:"Επιστροφή"},{de:"Umtausch",en:"Exchange",gr:"Ανταλλαγή"},
+    {de:"Gewicht",en:"Weight",gr:"Βάρος"},{de:"Gramm",en:"Gram",gr:"Γραμμάριο"},
+    {de:"Kilogramm",en:"Kilogram",gr:"Κιλό"},{de:"Liter",en:"Litre",gr:"Λίτρο"},
+    {de:"Packung",en:"Pack",gr:"Συσκευασία"},{de:"Dose",en:"Tin",gr:"Κονσέρβα"},
+    {de:"Flasche",en:"Bottle",gr:"Μπουκάλι"},{de:"Glas",en:"Jar",gr:"Βάζο"},
+    {de:"Beutel",en:"Pouch",gr:"Σακουλάκι"},{de:"Schachtel",en:"Box",gr:"Κουτί"},
+    {de:"Apfel",en:"Apple",gr:"Μήλο"},{de:"Birne",en:"Pear",gr:"Αχλάδι"},
+    {de:"Banane",en:"Banana",gr:"Μπανάνα"},{de:"Orange",en:"Orange",gr:"Πορτοκάλι"},
+    {de:"Zitrone",en:"Lemon",gr:"Λεμόνι"},{de:"Erdbeere",en:"Strawberry",gr:"Φράουλα"},
+    {de:"Weintraube",en:"Grape",gr:"Σταφύλι"},{de:"Wassermelone",en:"Watermelon",gr:"Καρπούζι"},
+    {de:"Pfirsich",en:"Peach",gr:"Ροδάκινο"},{de:"Kirsche",en:"Cherry",gr:"Κεράσι"},
+    {de:"Mango",en:"Mango",gr:"Μάνγκο"},{de:"Ananas",en:"Pineapple",gr:"Ανανάς"},
+    {de:"Tomate",en:"Tomato",gr:"Ντομάτα"},{de:"Gurke",en:"Cucumber",gr:"Αγγούρι"},
+    {de:"Paprika",en:"Bell pepper",gr:"Πιπεριά"},{de:"Zwiebel",en:"Onion",gr:"Κρεμμύδι"},
+    {de:"Knoblauch",en:"Garlic",gr:"Σκόρδο"},{de:"Karotte",en:"Carrot",gr:"Καρότο"},
+    {de:"Kartoffel",en:"Potato",gr:"Πατάτα"},{de:"Kopfsalat",en:"Lettuce",gr:"Μαρούλι"},
+    {de:"Spinat",en:"Spinach",gr:"Σπανάκι"},{de:"Brokkoli",en:"Broccoli",gr:"Μπρόκολο"},
+    {de:"Blumenkohl",en:"Cauliflower",gr:"Κουνουπίδι"},{de:"Zucchini",en:"Zucchini",gr:"Κολοκυθάκι"},
+    {de:"Aubergine",en:"Aubergine",gr:"Μελιτζάνα"},{de:"Mais",en:"Corn",gr:"Καλαμπόκι"},
+    {de:"Erbsen",en:"Peas",gr:"Αρακάς"},{de:"Milch",en:"Milk",gr:"Γάλα"},
+    {de:"Sahne",en:"Cream",gr:"Κρέμα γάλακτος"},{de:"Joghurt",en:"Yoghurt",gr:"Γιαούρτι"},
+    {de:"Eier",en:"Eggs",gr:"Αυγά"},{de:"Quark",en:"Curd cheese",gr:"Τυρί κότατζ"},
+    {de:"Rindfleisch",en:"Beef",gr:"Μοσχάρι"},{de:"Schweinefleisch",en:"Pork",gr:"Χοιρινό"},
+    {de:"Hähnchen",en:"Chicken",gr:"Κοτόπουλο"},{de:"Lachs",en:"Salmon",gr:"Σολομός"},
+    {de:"Thunfisch",en:"Tuna",gr:"Τόνος"},{de:"Garnelen",en:"Shrimps",gr:"Γαρίδες"},
+    {de:"Mehl",en:"Flour",gr:"Αλεύρι"},{de:"Öl",en:"Oil",gr:"Λάδι"},
+    {de:"Essig",en:"Vinegar",gr:"Ξύδι"},{de:"Nudeln",en:"Pasta",gr:"Ζυμαρικά"},
+    {de:"Reis",en:"Rice",gr:"Ρύζι"},{de:"Konserve",en:"Canned food",gr:"Κονσέρβα"},
+    {de:"Marmelade",en:"Jam",gr:"Μαρμελάδα"},{de:"Honig",en:"Honey",gr:"Μέλι"},
+    {de:"Kaffee",en:"Coffee",gr:"Καφές"},{de:"Tee",en:"Tea",gr:"Τσάι"},
+    {de:"Schokolade",en:"Chocolate",gr:"Σοκολάτα"},{de:"Chips",en:"Crisps",gr:"Τσιπς"},
+    {de:"Kekse",en:"Biscuits",gr:"Μπισκότα"},{de:"Tiefkühlpizza",en:"Frozen pizza",gr:"Κατεψυγμένη πίτσα"},
+    {de:"Aufschnitt",en:"Cold cuts",gr:"Αλλαντικά"},{de:"Wurst",en:"Sausage",gr:"Λουκάνικο"},
+    {de:"Schinken",en:"Ham",gr:"Ζαμπόν"},{de:"Hackfleisch",en:"Minced meat",gr:"Κιμάς"},
+    {de:"Fertiggericht",en:"Ready meal",gr:"Έτοιμο γεύμα"},{de:"Tomatenmark",en:"Tomato paste",gr:"Πελτές"},
+    {de:"Senf",en:"Mustard",gr:"Μουστάρδα"},{de:"Ketchup",en:"Ketchup",gr:"Κέτσαπ"},
+    {de:"Mayonnaise",en:"Mayonnaise",gr:"Μαγιονέζα"},{de:"Gewürze",en:"Spices",gr:"Μπαχαρικά"},
+    {de:"Zimt",en:"Cinnamon",gr:"Κανέλα"},{de:"Vanille",en:"Vanilla",gr:"Βανίλια"},
+    {de:"Mineralwasser",en:"Mineral water",gr:"Μεταλλικό νερό"},{de:"Fruchtsaft",en:"Fruit juice",gr:"Φρουτοχυμός"},
+    {de:"Limonade",en:"Lemonade",gr:"Λεμονάδα"},{de:"Waschmittel",en:"Laundry detergent",gr:"Απορρυπαντικό"},
+    {de:"Spülmittel",en:"Dish soap",gr:"Υγρό πιάτων"},{de:"Reinigungsmittel",en:"Cleaning products",gr:"Καθαριστικά"},
+    {de:"Toilettenpapier",en:"Toilet paper",gr:"Χαρτί υγείας"},{de:"Zahnpasta",en:"Toothpaste",gr:"Οδοντόκρεμα"},
+    {de:"Shampoo",en:"Shampoo",gr:"Σαμπουάν"},{de:"Deo",en:"Deodorant",gr:"Αποσμητικό"},
+    {de:"Selbstbedienung",en:"Self-service",gr:"Αυτοεξυπηρέτηση"},{de:"Backpulver",en:"Baking powder",gr:"Μπέικιν πάουντερ"},
+    {de:"Hefe",en:"Yeast",gr:"Μαγιά"},{de:"Milliliter",en:"Millilitre",gr:"Χιλιοστόλιτρο"},
+    {de:"Tube",en:"Tube",gr:"Σωληνάριο"},{de:"Batterien",en:"Batteries",gr:"Μπαταρίες"},
+    {de:"Zeitschrift",en:"Magazine",gr:"Περιοδικό"},{de:"Haushaltswaren",en:"Household goods",gr:"Είδη οικιακής χρήσης"},
+    {de:"Tiernahrung",en:"Pet food",gr:"Τροφή ζώων"},{de:"Bio-Produkt",en:"Organic product",gr:"Βιολογικό προϊόν"},
+    {de:"Mengenrabatt",en:"Bulk discount",gr:"Έκπτωση ποσότητας"},{de:"Bonuspunkte",en:"Loyalty points",gr:"Πόντοι επιβράβευσης"},
+  ]},
+  apotheke:{name:"In der Apotheke",emoji:"💊",words:[
+    {de:"Apotheker",en:"Pharmacist",gr:"Φαρμακοποιός"},{de:"Rezept",en:"Prescription",gr:"Συνταγή"},
+    {de:"Medikament",en:"Medication",gr:"Φάρμακο"},{de:"Tablette",en:"Tablet",gr:"Χάπι"},
+    {de:"Kapsel",en:"Capsule",gr:"Κάψουλα"},{de:"Tropfen",en:"Drops",gr:"Σταγόνες"},
+    {de:"Salbe",en:"Ointment",gr:"Αλοιφή"},{de:"Creme",en:"Cream",gr:"Κρέμα"},
+    {de:"Pflaster",en:"Plaster",gr:"Τσιρότο"},{de:"Verband",en:"Bandage",gr:"Επίδεσμος"},
+    {de:"Spritze",en:"Syringe",gr:"Σύριγγα"},{de:"Impfung",en:"Vaccination",gr:"Εμβολιασμός"},
+    {de:"Thermometer",en:"Thermometer",gr:"Θερμόμετρο"},{de:"Blutdruckmessgerät",en:"Blood pressure monitor",gr:"Πιεσόμετρο"},
+    {de:"Schmerzmittel",en:"Painkiller",gr:"Παυσίπονο"},{de:"Ibuprofen",en:"Ibuprofen",gr:"Ιβουπροφένη"},
+    {de:"Paracetamol",en:"Paracetamol",gr:"Παρακεταμόλη"},{de:"Aspirin",en:"Aspirin",gr:"Ασπιρίνη"},
+    {de:"Antibiotikum",en:"Antibiotic",gr:"Αντιβιοτικό"},{de:"Hustensaft",en:"Cough syrup",gr:"Σιρόπι για βήχα"},
+    {de:"Nasenspray",en:"Nasal spray",gr:"Ρινικό σπρέι"},{de:"Augentropfen",en:"Eye drops",gr:"Κολλύριο"},
+    {de:"Ohrentropfen",en:"Ear drops",gr:"Σταγόνες αυτιών"},{de:"Magentabletten",en:"Stomach tablets",gr:"Χάπια στομάχου"},
+    {de:"Abführmittel",en:"Laxative",gr:"Καθαρτικό"},{de:"Antihistaminikum",en:"Antihistamine",gr:"Αντιισταμινικό"},
+    {de:"Schlaftabletten",en:"Sleeping tablets",gr:"Υπνωτικά χάπια"},{de:"Vitamine",en:"Vitamins",gr:"Βιταμίνες"},
+    {de:"Vitamin C",en:"Vitamin C",gr:"Βιταμίνη C"},{de:"Magnesium",en:"Magnesium",gr:"Μαγνήσιο"},
+    {de:"Calcium",en:"Calcium",gr:"Ασβέστιο"},{de:"Omega-3",en:"Omega-3",gr:"Ωμέγα-3"},
+    {de:"Nahrungsergänzungsmittel",en:"Food supplement",gr:"Συμπλήρωμα διατροφής"},{de:"Probiotika",en:"Probiotics",gr:"Προβιοτικά"},
+    {de:"Sonnencreme",en:"Sunscreen",gr:"Αντηλιακό"},{de:"Feuchtigkeitscreme",en:"Moisturiser",gr:"Ενυδατική κρέμα"},
+    {de:"Desinfektionsmittel",en:"Disinfectant",gr:"Απολυμαντικό"},{de:"Alkohol",en:"Alcohol",gr:"Οινόπνευμα"},
+    {de:"Jod",en:"Iodine",gr:"Ιώδιο"},{de:"Watte",en:"Cotton wool",gr:"Βαμβάκι"},
+    {de:"Mullbinde",en:"Gauze bandage",gr:"Γάζα"},{de:"Heftpflaster",en:"Adhesive plaster",gr:"Αυτοκόλλητο τσιρότο"},
+    {de:"Kompresse",en:"Compress",gr:"Κομπρέσα"},{de:"Kühlpackung",en:"Ice pack",gr:"Παγοκύστη"},
+    {de:"Wärmflasche",en:"Hot water bottle",gr:"Θερμοφόρα"},{de:"Einweghandschuhe",en:"Disposable gloves",gr:"Γάντια μιας χρήσης"},
+    {de:"Mundwasser",en:"Mouthwash",gr:"Στοματικό διάλυμα"},{de:"Zahnseide",en:"Dental floss",gr:"Οδοντικό νήμα"},
+    {de:"Kontaktlinsen",en:"Contact lenses",gr:"Φακοί επαφής"},{de:"Hörgerät",en:"Hearing aid",gr:"Ακουστικό βαρηκοΐας"},
+    {de:"Fieber",en:"Fever",gr:"Πυρετός"},{de:"Erkältung",en:"Cold",gr:"Κρυολόγημα"},
+    {de:"Grippe",en:"Flu",gr:"Γρίπη"},{de:"Husten",en:"Cough",gr:"Βήχας"},
+    {de:"Schnupfen",en:"Runny nose",gr:"Καταρροή"},{de:"Halsschmerzen",en:"Sore throat",gr:"Πονόλαιμος"},
+    {de:"Kopfschmerzen",en:"Headache",gr:"Πονοκέφαλος"},{de:"Bauchschmerzen",en:"Stomach ache",gr:"Στομαχόπονος"},
+    {de:"Rückenschmerzen",en:"Back pain",gr:"Πόνος στη πλάτη"},{de:"Allergie",en:"Allergy",gr:"Αλλεργία"},
+    {de:"Ausschlag",en:"Rash",gr:"Εξάνθημα"},{de:"Verbrennung",en:"Burn",gr:"Έγκαυμα"},
+    {de:"Wunde",en:"Wound",gr:"Πληγή"},{de:"Blutung",en:"Bleeding",gr:"Αιμορραγία"},
+    {de:"Schwellung",en:"Swelling",gr:"Πρήξιμο"},{de:"Übelkeit",en:"Nausea",gr:"Ναυτία"},
+    {de:"Erbrechen",en:"Vomiting",gr:"Εμετός"},{de:"Durchfall",en:"Diarrhoea",gr:"Διάρροια"},
+    {de:"Verstopfung",en:"Constipation",gr:"Δυσκοιλιότητα"},{de:"Schwindel",en:"Dizziness",gr:"Ζάλη"},
+    {de:"Entzündung",en:"Inflammation",gr:"Φλεγμονή"},{de:"Infektion",en:"Infection",gr:"Λοίμωξη"},
+    {de:"Diabetes",en:"Diabetes",gr:"Διαβήτης"},{de:"Bluthochdruck",en:"High blood pressure",gr:"Υψηλή πίεση"},
+    {de:"Asthma",en:"Asthma",gr:"Άσθμα"},{de:"Haut",en:"Skin",gr:"Δέρμα"},
+    {de:"Knochen",en:"Bone",gr:"Κόκαλο"},{de:"Muskel",en:"Muscle",gr:"Μυς"},
+    {de:"Gelenk",en:"Joint",gr:"Άρθρωση"},{de:"Auge",en:"Eye",gr:"Μάτι"},
+    {de:"Ohr",en:"Ear",gr:"Αυτί"},{de:"Nase",en:"Nose",gr:"Μύτη"},
+    {de:"Mund",en:"Mouth",gr:"Στόμα"},{de:"Zahn",en:"Tooth",gr:"Δόντι"},
+    {de:"Herz",en:"Heart",gr:"Καρδιά"},{de:"Lunge",en:"Lung",gr:"Πνεύμονας"},
+    {de:"Magen",en:"Stomach",gr:"Στομάχι"},{de:"Leber",en:"Liver",gr:"Συκώτι"},
+    {de:"Niere",en:"Kidney",gr:"Νεφρός"},{de:"Dosierung",en:"Dosage",gr:"Δοσολογία"},
+    {de:"Nebenwirkungen",en:"Side effects",gr:"Παρενέργειες"},{de:"Beipackzettel",en:"Package insert",gr:"Φύλλο οδηγιών"},
+    {de:"Wechselwirkung",en:"Interaction",gr:"Αλληλεπίδραση"},{de:"Rezeptfrei",en:"Over the counter",gr:"Χωρίς συνταγή"},
+    {de:"Rezeptpflichtig",en:"Prescription only",gr:"Με συνταγή"},{de:"Kühl lagern",en:"Keep refrigerated",gr:"Στο ψυγείο"},
+    {de:"Einnahme",en:"Intake",gr:"Λήψη"},{de:"Nüchtern einnehmen",en:"Take on empty stomach",gr:"Νηστικός"},
+    {de:"Nach dem Essen",en:"After meals",gr:"Μετά το φαγητό"},{de:"Zäpfchen",en:"Suppository",gr:"Υπόθετο"},
+    {de:"Inhalator",en:"Inhaler",gr:"Εισπνευστήρας"},{de:"Insulin",en:"Insulin",gr:"Ινσουλίνη"},
+    {de:"Melatonin",en:"Melatonin",gr:"Μελατονίνη"},{de:"Beruhigungsmittel",en:"Sedative",gr:"Ηρεμιστικό"},
+    {de:"Blut",en:"Blood",gr:"Αίμα"},{de:"Bluttest",en:"Blood test",gr:"Εξέταση αίματος"},
+    {de:"Urintest",en:"Urine test",gr:"Εξέταση ούρων"},{de:"Krankenversicherung",en:"Health insurance",gr:"Ασφάλεια υγείας"},
+    {de:"Krankenschein",en:"Medical certificate",gr:"Ιατρική γνωμάτευση"},{de:"Überweisung",en:"Referral",gr:"Παραπομπή"},
+    {de:"Hausarzt",en:"GP",gr:"Οικογενειακός γιατρός"},{de:"Facharzt",en:"Specialist",gr:"Ειδικός γιατρός"},
+    {de:"Röntgen",en:"X-ray",gr:"Ακτινογραφία"},{de:"Ultraschall",en:"Ultrasound",gr:"Υπερηχογράφημα"},
+    {de:"Operation",en:"Operation",gr:"Χειρουργείο"},{de:"Narkose",en:"Anaesthesia",gr:"Αναισθησία"},
+    {de:"Verordnung",en:"Prescription order",gr:"Ιατρική εντολή"},{de:"Generikum",en:"Generic drug",gr:"Γενόσημο"},
+    {de:"Inhaltsstoffe",en:"Ingredients",gr:"Συστατικά"},{de:"Wundcreme",en:"Wound cream",gr:"Κρέμα πληγών"},
+    {de:"Eisenpräparat",en:"Iron supplement",gr:"Σιδηρούχο συμπλήρωμα"},{de:"Ohnmacht",en:"Fainting",gr:"Λιποθυμία"},
+  ]},
+  werkstatt:{name:"In der Werkstatt",emoji:"🔧",words:[
+    {de:"Hammer",en:"Hammer",gr:"Σφυρί"},{de:"Nagel",en:"Nail",gr:"Καρφί"},
+    {de:"Schraubenzieher",en:"Screwdriver",gr:"Κατσαβίδι"},{de:"Kreuzschlitzschraubenzieher",en:"Phillips screwdriver",gr:"Σταυροκατσάβιδο"},
+    {de:"Zange",en:"Pliers",gr:"Πένσα"},{de:"Kombizange",en:"Combination pliers",gr:"Κομπινεζόν"},
+    {de:"Schlüssel",en:"Wrench",gr:"Κλειδί"},{de:"Bohrmaschine",en:"Drill",gr:"Τρυπάνι"},
+    {de:"Akkubohrer",en:"Cordless drill",gr:"Ασύρματο τρυπάνι"},{de:"Säge",en:"Saw",gr:"Πριόνι"},
+    {de:"Stichsäge",en:"Jigsaw",gr:"Σέγα"},{de:"Kreissäge",en:"Circular saw",gr:"Δισκοπρίονο"},
+    {de:"Winkelschleifer",en:"Angle grinder",gr:"Γωνιακός τροχός"},{de:"Schweißgerät",en:"Welder",gr:"Συσκευή συγκόλλησης"},
+    {de:"Lötkolben",en:"Soldering iron",gr:"Κολλητήρι"},{de:"Meißel",en:"Chisel",gr:"Σκαρπέλο"},
+    {de:"Feile",en:"File",gr:"Λίμα"},{de:"Schleifpapier",en:"Sandpaper",gr:"Γυαλόχαρτο"},
+    {de:"Wasserwaage",en:"Spirit level",gr:"Αλφάδι"},{de:"Maßband",en:"Tape measure",gr:"Μετροταινία"},
+    {de:"Lineal",en:"Ruler",gr:"Χάρακας"},{de:"Schraubstock",en:"Vice",gr:"Μέγγενη"},
+    {de:"Werkbank",en:"Workbench",gr:"Πάγκος εργασίας"},{de:"Schraube",en:"Screw",gr:"Βίδα"},
+    {de:"Mutter",en:"Nut",gr:"Παξιμάδι"},{de:"Unterlegscheibe",en:"Washer",gr:"Ροδέλα"},
+    {de:"Bolzen",en:"Bolt",gr:"Μπουλόνι"},{de:"Niet",en:"Rivet",gr:"Πριτσίνι"},
+    {de:"Dübel",en:"Rawlplug",gr:"Βύσμα"},{de:"Feder",en:"Spring",gr:"Ελατήριο"},
+    {de:"Lager",en:"Bearing",gr:"Ρουλεμάν"},{de:"Riemen",en:"Belt",gr:"Ιμάντας"},
+    {de:"Kette",en:"Chain",gr:"Αλυσίδα"},{de:"Motor",en:"Engine",gr:"Μηχανή"},
+    {de:"Getriebe",en:"Gearbox",gr:"Κιβώτιο ταχυτήτων"},{de:"Bremse",en:"Brake",gr:"Φρένο"},
+    {de:"Bremsbelag",en:"Brake pad",gr:"Τακάκι φρένου"},{de:"Kupplung",en:"Clutch",gr:"Συμπλέκτης"},
+    {de:"Auspuff",en:"Exhaust",gr:"Εξάτμιση"},{de:"Reifen",en:"Tyre",gr:"Ελαστικό"},
+    {de:"Felge",en:"Rim",gr:"Ζάντα"},{de:"Rad",en:"Wheel",gr:"Τροχός"},
+    {de:"Batterie",en:"Battery",gr:"Μπαταρία"},{de:"Lichtmaschine",en:"Alternator",gr:"Δυναμό"},
+    {de:"Anlasser",en:"Starter motor",gr:"Μίζα"},{de:"Zündkerze",en:"Spark plug",gr:"Μπουζί"},
+    {de:"Keilriemen",en:"Fan belt",gr:"Ιμάντας"},{de:"Luftfilter",en:"Air filter",gr:"Φίλτρο αέρα"},
+    {de:"Ölfilter",en:"Oil filter",gr:"Φίλτρο λαδιού"},{de:"Kühler",en:"Radiator",gr:"Ψυγείο"},
+    {de:"Kühlmittel",en:"Coolant",gr:"Ψυκτικό υγρό"},{de:"Motoröl",en:"Engine oil",gr:"Λάδι κινητήρα"},
+    {de:"Bremsflüssigkeit",en:"Brake fluid",gr:"Υγρό φρένων"},{de:"Stoßdämpfer",en:"Shock absorber",gr:"Αμορτισέρ"},
+    {de:"Achse",en:"Axle",gr:"Άξονας"},{de:"Lenkung",en:"Steering",gr:"Σύστημα διεύθυνσης"},
+    {de:"Auspuffrohr",en:"Exhaust pipe",gr:"Σωλήνας εξάτμισης"},{de:"Katalysator",en:"Catalytic converter",gr:"Καταλύτης"},
+    {de:"Bremsscheibe",en:"Brake disc",gr:"Δίσκος φρένου"},{de:"Bremstrommel",en:"Brake drum",gr:"Τύμπανο φρένου"},
+    {de:"Ölwechsel",en:"Oil change",gr:"Αλλαγή λαδιού"},{de:"Reifenwechsel",en:"Tyre change",gr:"Αλλαγή ελαστικών"},
+    {de:"Inspektion",en:"Service",gr:"Σέρβις"},{de:"Diagnose",en:"Diagnosis",gr:"Διάγνωση"},
+    {de:"Fehlercode",en:"Fault code",gr:"Κωδικός σφάλματος"},{de:"Hebebühne",en:"Car lift",gr:"Ανυψωτήρας"},
+    {de:"Wagenheber",en:"Car jack",gr:"Γρύλος"},{de:"Druckluft",en:"Compressed air",gr:"Πεπιεσμένος αέρας"},
+    {de:"Kompressor",en:"Compressor",gr:"Κομπρεσέρ"},{de:"Schmierfett",en:"Grease",gr:"Γράσο"},
+    {de:"Dichtmasse",en:"Sealant",gr:"Στεγανωτικό"},{de:"Sprühöl",en:"Spray oil",gr:"Σπρέι λιπαντικό"},
+    {de:"Reparatur",en:"Repair",gr:"Επισκευή"},{de:"Ersatzteil",en:"Spare part",gr:"Ανταλλακτικό"},
+    {de:"Garantie",en:"Warranty",gr:"Εγγύηση"},{de:"Kostenvoranschlag",en:"Estimate",gr:"Κοστολόγηση"},
+    {de:"Mechaniker",en:"Mechanic",gr:"Μηχανικός"},{de:"Elektriker",en:"Electrician",gr:"Ηλεκτρολόγος"},
+    {de:"Drehmomentschlüssel",en:"Torque wrench",gr:"Κλειδί ροπής"},{de:"Ringschlüssel",en:"Ring spanner",gr:"Κλειδί δακτυλίου"},
+    {de:"Steckschlüssel",en:"Socket wrench",gr:"Καρυδάκι"},{de:"Ratsche",en:"Ratchet",gr:"Καστάνια"},
+    {de:"Innensechskantschlüssel",en:"Allen key",gr:"Κλειδί Allen"},{de:"Spitzzange",en:"Needle-nose pliers",gr:"Μυτοτσίμπιδο"},
+    {de:"Seitenschneider",en:"Wire cutters",gr:"Κόπτης"},{de:"Rohrzange",en:"Pipe wrench",gr:"Γαλλικό κλειδί"},
+    {de:"Schraubenziehersatz",en:"Screwdriver set",gr:"Σετ κατσαβιδιών"},{de:"Bohrersatz",en:"Drill bit set",gr:"Σετ τρυπανιών"},
+    {de:"Verlängerungsschnur",en:"Extension cord",gr:"Μπαλαντέζα"},{de:"Multimeter",en:"Multimeter",gr:"Πολύμετρο"},
+    {de:"Prüflampe",en:"Test light",gr:"Ελεγκτής"},
+    {de:"Kabelbinder",en:"Cable tie",gr:"Δεματικό"},{de:"Isolierband",en:"Electrical tape",gr:"Μονωτική ταινία"},
+    {de:"Schutzbrille",en:"Safety goggles",gr:"Προστατευτικά γυαλιά"},{de:"Schutzhandschuhe",en:"Protective gloves",gr:"Γάντια προστασίας"},
+    {de:"Schutzhelm",en:"Safety helmet",gr:"Κράνος"},{de:"Gehörschutz",en:"Ear protection",gr:"Ωτοασπίδες"},
+    {de:"Atemschutzmaske",en:"Respirator mask",gr:"Μάσκα αναπνοής"},{de:"Feuerlöscher",en:"Fire extinguisher",gr:"Πυροσβεστήρας"},
+    {de:"Arbeitssicherheit",en:"Work safety",gr:"Ασφάλεια εργασίας"},{de:"Werkzeugkasten",en:"Tool box",gr:"Εργαλειοθήκη"},
+    {de:"Werkzeugschrank",en:"Tool cabinet",gr:"Ντουλάπι εργαλείων"},{de:"Beleuchtung",en:"Lighting",gr:"Φωτισμός"},
+    {de:"Verlängerung",en:"Extension bar",gr:"Προέκταση"},{de:"Anreißnadel",en:"Scriber",gr:"Χαράκτης"},
+    {de:"Schraubklemme",en:"G-clamp",gr:"Σφιγκτήρας"},{de:"Amboss",en:"Anvil",gr:"Αμόνι"},
+    {de:"Aufnahme",en:"Recording",gr:"Εγγραφή"},{de:"Schaltplan",en:"Wiring diagram",gr:"Ηλεκτρολογικό σχέδιο"},
+    {de:"Anzugsmoment",en:"Tightening torque",gr:"Ροπή σύσφιξης"},{de:"Abdichtung",en:"Sealing",gr:"Στεγανοποίηση"},
+    {de:"Oberflächenschutz",en:"Surface protection",gr:"Προστασία επιφάνειας"},{de:"Rostschutz",en:"Rust protection",gr:"Αντισκωριακή προστασία"},
+    {de:"Schmierung",en:"Lubrication",gr:"Λίπανση"},{de:"Kraftstoff",en:"Fuel",gr:"Καύσιμο"},
+    {de:"Getriebeöl",en:"Gearbox oil",gr:"Λάδι κιβωτίου"},{de:"Servolenkungsöl",en:"Power steering fluid",gr:"Λάδι τιμονιού"},
+    {de:"Kupplungsscheibe",en:"Clutch disc",gr:"Δίσκος συμπλέκτη"},{de:"Schwungrad",en:"Flywheel",gr:"Σφόνδυλος"},
+    {de:"Nockenwelle",en:"Camshaft",gr:"Εκκεντροφόρος"},{de:"Kurbelwelle",en:"Crankshaft",gr:"Στρόφαλος"},
+    {de:"Zylinder",en:"Cylinder",gr:"Κύλινδρος"},{de:"Kolben",en:"Piston",gr:"Έμβολο"},
+    {de:"Ventil",en:"Valve",gr:"Βαλβίδα"},{de:"Turbolader",en:"Turbocharger",gr:"Τούρμπο"},
+    {de:"Kühlwasser",en:"Coolant water",gr:"Νερό ψύξης"},{de:"Auspuffkrümmer",en:"Exhaust manifold",gr:"Πολλαπλή εξαγωγής"},
+    {de:"Antriebswelle",en:"Drive shaft",gr:"Άξονας κίνησης"},{de:"Gelenkwelle",en:"Cardan shaft",gr:"Καρντάν"},
+    {de:"Reifendruck",en:"Tyre pressure",gr:"Πίεση ελαστικών"},{de:"Profiltiefe",en:"Tread depth",gr:"Βάθος πέλματος"},
+    {de:"Achsvermessung",en:"Wheel alignment",gr:"Ευθυγράμμιση"},
+  ]},
+};
+
+// ═══════════════════════════════════════════
+//  STATE
+// ═══════════════════════════════════════════
+let S = {
+  mode:'card', lang:'en', dir:'de',
+  altFlip:false, catKey:null, cards:[], idx:0,
+  flipped:false, ok:0, err:0, quizAnswered:false,
+};
+
+// ═══════════════════════════════════════════
+//  PERSISTENCE
+// ═══════════════════════════════════════════
+const LS = {
+  prog()    { try{return JSON.parse(localStorage.getItem('v_prog')||'{}')}catch{return{}} },
+  saveProg(p){ localStorage.setItem('v_prog',JSON.stringify(p)) },
+  streak()  { try{return JSON.parse(localStorage.getItem('v_streak')||'{"n":0,"last":null,"today":0}')}catch{return{n:0,last:null,today:0}} },
+  saveStreak(s){ localStorage.setItem('v_streak',JSON.stringify(s)) },
+  total()   { return parseInt(localStorage.getItem('v_total')||'0') },
+  addTotal(){ localStorage.setItem('v_total',String(LS.total()+1)) },
+};
+
+// ═══════════════════════════════════════════
+//  HELPERS
+// ═══════════════════════════════════════════
+function today(){ return new Date().toISOString().slice(0,10) }
+function wid(cat,i){ return `${cat}_${i}` }
+function isDue(p){ return !p||!p.due||p.due<=today() }
+function shuffle(a){ const b=[...a];for(let i=b.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[b[i],b[j]]=[b[j],b[i]]}return b }
+
+function langLabel(lang){
+  return lang==='en'?'🇬🇧 English':lang==='gr'?'🇬🇷 Ελληνικά':'🇩🇪 Deutsch'
+}
+
+// card direction for current card: returns {front, frontLang, back, backLang}
+function cardContent(word){
+  const tl = word[S.lang];
+  const dir = S.dir==='alt' ? (S.altFlip?'tl':'de') : S.dir;
+  if(dir==='tl'){
+    return {front:tl, frontLang:langLabel(S.lang), back:word.de, backLang:'🇩🇪 Deutsch'}
+  }
+  return {front:word.de, frontLang:'🇩🇪 Deutsch', back:tl, backLang:langLabel(S.lang)}
+}
+
+// ═══════════════════════════════════════════
+//  SPACED REPETITION
+// ═══════════════════════════════════════════
+function recordResult(id, correct){
+  const prog=LS.prog();
+  const e=prog[id]||{iv:1,due:today(),ok:0,err:0,learned:false};
+  if(correct){ e.ok++; e.iv=Math.min(e.iv*2,60); e.learned=true; }
+  else        { e.err++; e.iv=1; e.learned=false; }
+  const d=new Date(); d.setDate(d.getDate()+e.iv);
+  e.due=d.toISOString().slice(0,10);
+  prog[id]=e; LS.saveProg(prog);
+  const st=LS.streak(), td=today();
+  if(st.last!==td){
+    const yd=new Date(); yd.setDate(yd.getDate()-1);
+    st.n=st.last===yd.toISOString().slice(0,10)?st.n+1:1;
+    st.last=td; st.today=0;
+  }
+  if(correct){ st.today++; LS.addTotal(); }
+  LS.saveStreak(st);
+}
+
+// ═══════════════════════════════════════════
+//  THEME / SETTINGS
+// ═══════════════════════════════════════════
+function toggleTheme(){
+  const d=document.documentElement;
+  const dark=d.dataset.theme==='dark';
+  d.dataset.theme=dark?'light':'dark';
+  document.getElementById('themeBtn').textContent=dark?'☀️':'🌙';
+}
+function setLang(l){
+  S.lang=l;
+  document.getElementById('lEN').classList.toggle('active',l==='en');
+  document.getElementById('lGR').classList.toggle('active',l==='gr');
+}
+function setDir(d){
+  S.dir=d;
+  ['DE','TL','ALT'].forEach(x=>document.getElementById('d'+x).classList.remove('active'));
+  document.getElementById('d'+d.toUpperCase()).classList.add('active');
+}
+function setMode(m){
+  S.mode=m;
+  document.getElementById('mCard').classList.toggle('active',m==='card');
+  document.getElementById('mQuiz').classList.toggle('active',m==='quiz');
+}
+
+// ═══════════════════════════════════════════
+//  NAVIGATION
+// ═══════════════════════════════════════════
+function showView(name){
+  document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
+  document.getElementById('view-'+name).classList.add('active');
+  document.querySelectorAll('.nb').forEach(b=>b.classList.remove('active'));
+  const nb=document.getElementById('nav-'+name);
+  if(nb) nb.classList.add('active');
+  if(name==='home') renderHome();
+  if(name==='progress') renderProgress();
+}
+function goHome(){ showView('home') }
+
+// ═══════════════════════════════════════════
+//  HOME
+// ═══════════════════════════════════════════
+function renderHome(){
+  const st=LS.streak(), td=today();
+  document.getElementById('statStreak').textContent=st.n||0;
+  document.getElementById('statToday').textContent=st.last===td?(st.today||0):0;
+  document.getElementById('statTotal').textContent=LS.total();
+  const prog=LS.prog();
+  let due=0;
+  for(const [k,c] of Object.entries(CATS))
+    c.words.forEach((_,i)=>{ if(isDue(prog[wid(k,i)])) due++; });
+  document.getElementById('dueBadge').textContent=due;
+  const grid=document.getElementById('catGrid');
+  grid.innerHTML='';
+  for(const [k,c] of Object.entries(CATS)){
+    const tot=c.words.length;
+    let learned=0;
+    c.words.forEach((_,i)=>{ const p=prog[wid(k,i)]; if(p&&p.learned) learned++; });
+    const pct=Math.round(learned/tot*100);
+    const el=document.createElement('div');
+    el.className='cat-card fade-in';
+    el.innerHTML=`<span class="cat-emoji">${c.emoji}</span><div class="cat-name">${c.name}</div><div class="cat-cnt">${tot} Wörter · ${learned} gelernt</div><div class="mini-bar"><div class="mini-fill" style="width:${pct}%"></div></div>`;
+    el.onclick=()=>startCat(k);
+    grid.appendChild(el);
+  }
+}
+
+// ═══════════════════════════════════════════
+//  SESSION SETUP
+// ═══════════════════════════════════════════
+function buildCards(catKey){
+  const prog=LS.prog();
+  const all=CATS[catKey].words.map((w,i)=>({...w,id:wid(catKey,i),p:prog[wid(catKey,i)]}));
+  return [...shuffle(all.filter(c=>isDue(c.p))),...shuffle(all.filter(c=>!isDue(c.p)))].slice(0,20);
+}
+function startCat(catKey){
+  S.catKey=catKey; S.cards=buildCards(catKey); S.idx=0; S.ok=0; S.err=0; S.altFlip=false;
+  S.mode==='quiz'?launchQuiz(CATS[catKey].name):launchLearn(CATS[catKey].name);
+}
+function startDue(){
+  const prog=LS.prog(), all=[];
+  for(const [k,c] of Object.entries(CATS))
+    c.words.forEach((w,i)=>{ if(isDue(prog[wid(k,i)])) all.push({...w,id:wid(k,i)}); });
+  if(!all.length){alert('🎉 Keine fälligen Wörter heute!');return;}
+  S.catKey='_due'; S.cards=shuffle(all).slice(0,20); S.idx=0; S.ok=0; S.err=0; S.altFlip=false;
+  S.mode==='quiz'?launchQuiz('Heute fällig'):launchLearn('Heute fällig');
+}
+
+// ═══════════════════════════════════════════
+//  LEARN MODE
+// ═══════════════════════════════════════════
+function launchLearn(title){
+  document.getElementById('learnTitle').textContent=title;
+  document.getElementById('learnDone').style.display='none';
+  document.getElementById('cardArea').style.display='block';
+  showView('learn'); renderCard();
+}
+function renderCard(){
+  const c=S.cards[S.idx];
+  if(!c){endLearn();return;}
+  if(S.dir==='alt') S.altFlip=(S.idx%2===1);
+  S.flipped=false;
+  document.getElementById('card3d').classList.remove('flipped');
+  document.getElementById('btnW').disabled=true;
+  document.getElementById('btnC').disabled=true;
+  document.getElementById('flipHint').textContent='Karte anklicken zum Umdrehen';
+  updateLearnProg();
+  // update text after flip animation to prevent flash of answer
+  setTimeout(()=>{
+    const cc=cardContent(c);
+    document.getElementById('cFront').textContent=cc.front;
+    document.getElementById('cFrontLang').textContent=cc.frontLang;
+    document.getElementById('cBack').textContent=cc.back;
+    document.getElementById('cBackLang').textContent=cc.backLang;
+  },530);
+}
+function updateLearnProg(){
+  const tot=S.cards.length;
+  document.getElementById('learnLbl').textContent=`${S.idx} / ${tot}`;
+  document.getElementById('learnFill').style.width=`${S.idx/tot*100}%`;
+}
+function flipCard(){
+  if(document.getElementById('learnDone').style.display!=='none') return;
+  S.flipped=!S.flipped;
+  document.getElementById('card3d').classList.toggle('flipped',S.flipped);
+  if(S.flipped){
+    document.getElementById('btnW').disabled=false;
+    document.getElementById('btnC').disabled=false;
+    document.getElementById('flipHint').textContent='Wie gut wusstest du es?';
+  }
+}
+function rate(correct){
+  recordResult(S.cards[S.idx].id,correct);
+  if(correct)S.ok++;else S.err++;
+  S.idx++; renderCard();
+}
+function endLearn(){
+  document.getElementById('cardArea').style.display='none';
+  const tot=S.cards.length;
+  document.getElementById('learnLbl').textContent=`${tot} / ${tot}`;
+  document.getElementById('learnFill').style.width='100%';
+  const pct=Math.round(S.ok/tot*100);
+  document.getElementById('lEmoji').textContent=pct>=80?'🎉':pct>=50?'👍':'💪';
+  document.getElementById('lSub').textContent=`${pct}% richtig — ${tot} Karten`;
+  document.getElementById('lOk').textContent=S.ok;
+  document.getElementById('lErr').textContent=S.err;
+  document.getElementById('learnDone').style.display='block';
+}
+function replayLearn(){
+  S.cards=shuffle(S.cards);S.idx=0;S.ok=0;S.err=0;S.altFlip=false;
+  document.getElementById('learnDone').style.display='none';
+  document.getElementById('cardArea').style.display='block';
+  renderCard();
+}
+
+// ═══════════════════════════════════════════
+//  QUIZ MODE
+// ═══════════════════════════════════════════
+function launchQuiz(title){
+  document.getElementById('quizTitle').textContent=title;
+  document.getElementById('quizDone').style.display='none';
+  document.getElementById('quizArea').style.display='block';
+  showView('quiz'); renderQuizCard();
+}
+function renderQuizCard(){
+  const c=S.cards[S.idx];
+  if(!c){endQuiz();return;}
+  if(S.dir==='alt') S.altFlip=(S.idx%2===1);
+  const cc=cardContent(c);
+  S.quizAnswered=false;
+  // Question = front, answer = back
+  document.getElementById('qWord').textContent=cc.front;
+  document.getElementById('qHintLang').textContent='→ '+cc.backLang;
+  const inp=document.getElementById('qInput');
+  inp.value='';inp.className='qinput';inp.disabled=false;
+  document.getElementById('qFb').textContent='';
+  document.getElementById('qFb').className='qfb';
+  document.getElementById('qBtn').textContent='Prüfen →';
+  updateQuizProg();
+  setTimeout(()=>inp.focus(),50);
+}
+function updateQuizProg(){
+  const tot=S.cards.length;
+  document.getElementById('quizLbl').textContent=`${S.idx} / ${tot}`;
+  document.getElementById('quizFill').style.width=`${S.idx/tot*100}%`;
+}
+function submitQuiz(){
+  if(S.quizAnswered){S.idx++;renderQuizCard();return;}
+  const c=S.cards[S.idx];
+  const cc=cardContent(c);
+  const inp=document.getElementById('qInput');
+  const ans=inp.value.trim().toLowerCase();
+  const refs=cc.back.toLowerCase().split('/').map(s=>s.trim());
+  const ok=refs.some(r=>ans===r||ans===r.replace(/\s+/g,' '));
+  S.quizAnswered=true;
+  recordResult(c.id,ok);
+  if(ok){
+    S.ok++;inp.classList.add('ok');
+    document.getElementById('qFb').textContent='✓ Richtig! — '+cc.back;
+    document.getElementById('qFb').className='qfb ok';
+  } else {
+    S.err++;inp.classList.add('nok');inp.classList.add('shake');
+    document.getElementById('qFb').textContent='✗ Falsch. Richtig: '+cc.back;
+    document.getElementById('qFb').className='qfb nok';
+  }
+  inp.disabled=true;
+  document.getElementById('qBtn').textContent='Weiter →';
+}
+function endQuiz(){
+  document.getElementById('quizArea').style.display='none';
+  const tot=S.cards.length;
+  document.getElementById('quizLbl').textContent=`${tot} / ${tot}`;
+  document.getElementById('quizFill').style.width='100%';
+  const pct=Math.round(S.ok/tot*100);
+  document.getElementById('qEmoji').textContent=pct>=80?'🎉':pct>=50?'👍':'💪';
+  document.getElementById('qSub').textContent=`${pct}% richtig — ${tot} Wörter`;
+  document.getElementById('qOk').textContent=S.ok;
+  document.getElementById('qErr').textContent=S.err;
+  document.getElementById('quizDone').style.display='block';
+}
+function replayQuiz(){
+  S.cards=shuffle(S.cards);S.idx=0;S.ok=0;S.err=0;S.altFlip=false;
+  document.getElementById('quizDone').style.display='none';
+  document.getElementById('quizArea').style.display='block';
+  renderQuizCard();
+}
+
+// ═══════════════════════════════════════════
+//  PROGRESS
+// ═══════════════════════════════════════════
+function renderProgress(){
+  const prog=LS.prog(), td=today();
+  const list=document.getElementById('progList');
+  list.innerHTML='';
+  for(const [k,c] of Object.entries(CATS)){
+    let learned=0,due=0,newW=0;
+    c.words.forEach((_,i)=>{
+      const p=prog[wid(k,i)];
+      if(!p) newW++;
+      else if(p.learned) learned++;
+      else if(p.due<=td) due++;
+      else learned++;
+    });
+    const tot=c.words.length,pct=Math.round(learned/tot*100);
+    const el=document.createElement('div');
+    el.className='pitem fade-in';
+    el.innerHTML=`<div class="pitem-hdr"><span>${c.emoji}</span><span class="pitem-name">${c.name}</span><span class="pitem-pct">${pct}%</span></div><div class="mini-bar"><div class="mini-fill" style="width:${pct}%"></div></div><div class="pbreak"><span class="pg">✓ ${learned} gelernt</span><span class="pd">⏰ ${due} fällig</span><span class="pn">◦ ${newW} neu</span></div>`;
+    list.appendChild(el);
+  }
+}
+
+// ═══════════════════════════════════════════
+//  INIT
+// ═══════════════════════════════════════════
+renderHome();
+</script>
+</body>
+</html>
