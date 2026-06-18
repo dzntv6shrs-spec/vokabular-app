@@ -117,11 +117,12 @@
     .pbreak{display:flex;gap:12px;font-size:.73rem;margin-top:7px}
     .pg{color:var(--success)}.pd{color:var(--warning)}.pn{color:var(--muted)}
     /* Bottom nav */
-    .bnav{position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:480px;background:var(--surface);border-top:1px solid var(--border);display:flex;padding:8px 8px 18px;gap:4px}
+    /* WICHTIG: kein transform auf fixed-Elementen! iOS Safari bricht damit position:fixed (Bar scrollt mit). Zentrierung daher via margin:auto. */
+    .bnav{position:fixed;bottom:0;left:0;right:0;width:100%;max-width:480px;margin:0 auto;background:var(--surface);border-top:1px solid var(--border);display:flex;padding:8px 8px calc(18px + env(safe-area-inset-bottom));gap:4px;z-index:40}
     .nb{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;padding:8px 4px;cursor:pointer;border:none;background:transparent;color:var(--muted);font-size:.65rem;font-weight:600;text-transform:uppercase;letter-spacing:.05em;border-radius:10px;transition:all .2s}
     .nb svg{width:21px;height:21px}
     .nb.active{color:var(--accent-light);background:rgba(124,108,243,.12)}
-    .spacer{height:86px}
+    .spacer{height:calc(86px + env(safe-area-inset-bottom))}
     /* Voice/Reading settings modal */
     .modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:50;display:none;align-items:flex-start;justify-content:center;padding:20px 14px;overflow-y:auto}
     .modal-overlay.open{display:flex}
