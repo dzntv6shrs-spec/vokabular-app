@@ -170,6 +170,8 @@
     <button class="tog-btn" id="tOn" onclick="setTts(true)">🔊 An</button>
     <button class="tog-btn" id="tOff" onclick="setTts(false)">🔇 Aus</button>
   </div>
+  <div class="sec">Stimmen</div>
+  <div id="voicePickers" style="display:flex;flex-direction:column;gap:8px;margin-bottom:16px"></div>
   <div class="sec">Kategorien</div>
   <div class="cat-grid" id="catGrid"></div>
   <div class="spacer"></div>
@@ -950,12 +952,17 @@ function langLabel(lang){
 // ═══════════════════════════════════════════
 const TTS_LANG = { de:'de-DE', en:'en-GB', gr:'el-GR' };
 let TTS_VOICES = [];
-function loadTtsVoices(){ try{ TTS_VOICES = speechSynthesis.getVoices()||[]; }catch(e){ TTS_VOICES=[]; } }
+function loadTtsVoices(){ try{ TTS_VOICES = speechSynthesis.getVoices()||[]; }catch(e){ TTS_VOICES=[]; } try{ populateVoicePickers(); }catch(e){} }
 if('speechSynthesis' in window){ loadTtsVoices(); speechSynthesis.onvoiceschanged = loadTtsVoices; }
+const VOICE_PREF_KEYS = { de:'v_voice_de', en:'v_voice_en', gr:'v_voice_gr' };
+function getVoicePref(code){ try{ return localStorage.getItem(VOICE_PREF_KEYS[code])||''; }catch(e){ return ''; } }
+function setVoicePref(code,val){ try{ localStorage.setItem(VOICE_PREF_KEYS[code], val||''); }catch(e){} }
 function pickVoice(code){
   const want=(TTS_LANG[code]||'de-DE'); const pre=want.split('-')[0].toLowerCase();
   const matches=TTS_VOICES.filter(v=>v.lang && (v.lang.toLowerCase().replace('_','-')===want.toLowerCase() || v.lang.toLowerCase().startsWith(pre)));
   if(!matches.length) return null;
+  const pref=getVoicePref(code);                                               // vom Nutzer fest gewaehlte Stimme
+  if(pref){ const chosen=matches.find(v=>(v.voiceURI===pref)||(v.name===pref)); if(chosen) return chosen; }
   const score=v=>{
     const n=(v.name||'').toLowerCase(); let s=0;
     if(v.lang.toLowerCase().replace('_','-')===want.toLowerCase()) s+=4;       // exakte Region (z.B. de-DE)
@@ -965,6 +972,46 @@ function pickVoice(code){
     return s;
   };
   return matches.slice().sort((a,b)=>score(b)-score(a))[0];
+}
+// Stimmen-Auswahl auf der Startseite (zeigt alle auf dem Geraet verfuegbaren Stimmen)
+function populateVoicePickers(){
+  const wrap=document.getElementById('voicePickers'); if(!wrap) return;
+  const langs=[['de','🇩🇪 Deutsch'],['en','🇬🇧 Englisch'],['gr','🇬🇷 Griechisch']];
+  wrap.innerHTML='';
+  langs.forEach(function(L){
+    const code=L[0], label=L[1];
+    const pre=TTS_LANG[code].split('-')[0].toLowerCase();
+    const voices=TTS_VOICES.filter(v=>v.lang && v.lang.toLowerCase().startsWith(pre));
+    const row=document.createElement('div');
+    row.style.cssText='display:flex;align-items:center;gap:8px';
+    const lab=document.createElement('span'); lab.textContent=label;
+    lab.style.cssText='font-size:.82rem;min-width:96px';
+    row.appendChild(lab);
+    if(!voices.length){
+      const none=document.createElement('span'); none.textContent='(keine Stimme installiert)';
+      none.style.cssText='font-size:.78rem;color:var(--muted)';
+      row.appendChild(none); wrap.appendChild(row); return;
+    }
+    const pref=getVoicePref(code);
+    const sel=document.createElement('select');
+    sel.style.cssText='flex:1;min-width:0;padding:8px;border-radius:10px;background:var(--surface);color:var(--text);border:1px solid var(--border);font-size:.8rem';
+    const auto=document.createElement('option'); auto.value=''; auto.textContent='Automatisch (beste)'; sel.appendChild(auto);
+    voices.forEach(function(v){
+      const id=v.voiceURI||v.name;
+      const o=document.createElement('option'); o.value=id; o.textContent=v.name;
+      if(id===pref) o.selected=true;
+      sel.appendChild(o);
+    });
+    sel.onchange=function(){ setVoicePref(code, sel.value); };
+    row.appendChild(sel);
+    const test=document.createElement('button');
+    test.className='icon-btn'; test.style.cssText='width:38px;height:38px;flex:none';
+    test.textContent='🔊'; test.title='Anhören';
+    const sample={de:'Hallo, das ist ein Test.',en:'Hello, this is a test.',gr:'Γεια σου, αυτό είναι ένα τεστ.'}[code];
+    test.onclick=function(){ setVoicePref(code, sel.value); speak(sample, code); };
+    row.appendChild(test);
+    wrap.appendChild(row);
+  });
 }
 let _ttsT;
 function setStatus(msg){
@@ -1297,6 +1344,7 @@ function renderProgress(){
 // ═══════════════════════════════════════════
 S.tts = localStorage.getItem('v_tts')!=='0';
 setTts(S.tts);
+populateVoicePickers();
 renderHome();
 </script>
 </body>
