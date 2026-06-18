@@ -63,7 +63,10 @@
     .pwrap{height:6px;background:var(--border);border-radius:3px;margin-bottom:24px;overflow:hidden}
     .pfill{height:100%;background:linear-gradient(90deg,var(--accent),var(--accent-light));border-radius:3px;transition:width .4s}
     /* Card */
-    .card-scene{perspective:1000px;height:220px;margin-bottom:22px;cursor:pointer}
+    .card-scene{perspective:1000px;height:220px;margin-bottom:22px;cursor:pointer;position:relative}
+    .spk-btn{position:absolute;top:10px;right:10px;z-index:5;width:38px;height:38px;border-radius:50%;border:1px solid var(--border);background:var(--surface);color:var(--text);font-size:1rem;cursor:pointer;display:flex;align-items:center;justify-content:center;box-shadow:var(--shadow);transition:background .2s}
+    .spk-btn:hover{background:var(--border)}
+    .spk-btn:active{transform:scale(.92)}
     .card-3d{width:100%;height:100%;position:relative;transform-style:preserve-3d;transition:transform .52s cubic-bezier(.4,0,.2,1)}
     .card-3d.flipped{transform:rotateY(180deg)}
     .card-face{position:absolute;inset:0;backface-visibility:hidden;border-radius:var(--r);display:flex;flex-direction:column;align-items:center;justify-content:center;padding:28px;box-shadow:var(--shadow)}
@@ -162,6 +165,11 @@
     <button class="tog-btn active" id="mCard" onclick="setMode('card')">🃏 Karteikarten</button>
     <button class="tog-btn"        id="mQuiz" onclick="setMode('quiz')">✏️ Quiz</button>
   </div>
+  <div class="sec">Vorlesen</div>
+  <div class="toggle-row" style="margin-bottom:16px">
+    <button class="tog-btn" id="tOn" onclick="setTts(true)">🔊 An</button>
+    <button class="tog-btn" id="tOff" onclick="setTts(false)">🔇 Aus</button>
+  </div>
   <div class="sec">Kategorien</div>
   <div class="cat-grid" id="catGrid"></div>
   <div class="spacer"></div>
@@ -177,6 +185,7 @@
   <div class="pwrap"><div class="pfill" id="learnFill" style="width:0%"></div></div>
   <div id="cardArea">
     <div class="card-scene" onclick="flipCard()">
+      <button class="spk-btn" id="spkBtn" onclick="speakCurrent(event)" title="Vorlesen" aria-label="Vorlesen">🔊</button>
       <div class="card-3d" id="card3d">
         <div class="card-face card-front">
           <div class="clang" id="cFrontLang">🇩🇪 Deutsch</div>
@@ -908,7 +917,7 @@ const CATS = {
 let S = {
   mode:'card', lang:'en', dir:'de',
   altFlip:false, catKey:null, cards:[], idx:0,
-  flipped:false, ok:0, err:0, quizAnswered:false,
+  flipped:false, ok:0, err:0, quizAnswered:false, tts:true,
 };
 
 // ═══════════════════════════════════════════
@@ -935,14 +944,61 @@ function langLabel(lang){
   return lang==='en'?'🇬🇧 English':lang==='gr'?'🇬🇷 Ελληνικά':'🇩🇪 Deutsch'
 }
 
-// card direction for current card: returns {front, frontLang, back, backLang}
+// ═══════════════════════════════════════════
+//  VORLESEN (Text-to-Speech)
+// ═══════════════════════════════════════════
+const TTS_LANG = { de:'de-DE', en:'en-GB', gr:'el-GR' };
+let TTS_VOICES = [];
+function loadTtsVoices(){ try{ TTS_VOICES = speechSynthesis.getVoices()||[]; }catch(e){ TTS_VOICES=[]; } }
+if('speechSynthesis' in window){ loadTtsVoices(); speechSynthesis.onvoiceschanged = loadTtsVoices; }
+let ttsUnlocked=false;
+function unlockTts(){
+  if(ttsUnlocked || !('speechSynthesis' in window)) return;
+  ttsUnlocked=true;
+  try{ const u=new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); }catch(e){}
+}
+function pickVoice(code){
+  const want=(TTS_LANG[code]||'de-DE'); const pre=want.split('-')[0].toLowerCase();
+  return TTS_VOICES.find(v=>v.lang===want)
+      || TTS_VOICES.find(v=>v.lang&&v.lang.toLowerCase().replace('_','-')===want.toLowerCase())
+      || TTS_VOICES.find(v=>v.lang&&v.lang.toLowerCase().startsWith(pre))
+      || null;
+}
+function speak(text, code){
+  if(!('speechSynthesis' in window) || !text) return;
+  try{
+    speechSynthesis.cancel();
+    const u=new SpeechSynthesisUtterance(text);
+    u.lang=TTS_LANG[code]||'de-DE';
+    const v=pickVoice(code); if(v) u.voice=v;
+    u.rate=0.95;
+    speechSynthesis.speak(u);
+  }catch(e){}
+}
+function speakCurrent(ev){
+  if(ev&&ev.stopPropagation) ev.stopPropagation();
+  unlockTts();
+  const c=S.cards[S.idx]; if(!c) return;
+  const cc=cardContent(c);
+  if(S.flipped) speak(cc.back, cc.backCode); else speak(cc.front, cc.frontCode);
+}
+function setTts(on){
+  S.tts=!!on;
+  try{ localStorage.setItem('v_tts', on?'1':'0'); }catch(e){}
+  const a=document.getElementById('tOn'), b=document.getElementById('tOff');
+  if(a) a.classList.toggle('active', on);
+  if(b) b.classList.toggle('active', !on);
+  if(!on && 'speechSynthesis' in window) speechSynthesis.cancel();
+}
+
+// card direction for current card: returns {front, frontLang, frontCode, back, backLang, backCode}
 function cardContent(word){
   const tl = word[S.lang];
   const dir = S.dir==='alt' ? (S.altFlip?'tl':'de') : S.dir;
   if(dir==='tl'){
-    return {front:tl, frontLang:langLabel(S.lang), back:word.de, backLang:'🇩🇪 Deutsch'}
+    return {front:tl, frontLang:langLabel(S.lang), frontCode:S.lang, back:word.de, backLang:'🇩🇪 Deutsch', backCode:'de'}
   }
-  return {front:word.de, frontLang:'🇩🇪 Deutsch', back:tl, backLang:langLabel(S.lang)}
+  return {front:word.de, frontLang:'🇩🇪 Deutsch', frontCode:'de', back:tl, backLang:langLabel(S.lang), backCode:S.lang}
 }
 
 // ═══════════════════════════════════════════
@@ -1003,7 +1059,7 @@ function showView(name){
   if(name==='home') renderHome();
   if(name==='progress') renderProgress();
 }
-function goHome(){ showView('home') }
+function goHome(){ if('speechSynthesis' in window) speechSynthesis.cancel(); showView('home') }
 
 // ═══════════════════════════════════════════
 //  HOME
@@ -1042,10 +1098,12 @@ function buildCards(catKey){
   return [...shuffle(all.filter(c=>isDue(c.p))),...shuffle(all.filter(c=>!isDue(c.p)))].slice(0,20);
 }
 function startCat(catKey){
+  unlockTts();
   S.catKey=catKey; S.cards=buildCards(catKey); S.idx=0; S.ok=0; S.err=0; S.altFlip=false;
   S.mode==='quiz'?launchQuiz(CATS[catKey].name):launchLearn(CATS[catKey].name);
 }
 function startDue(){
+  unlockTts();
   const prog=LS.prog(), all=[];
   for(const [k,c] of Object.entries(CATS))
     c.words.forEach((w,i)=>{ if(isDue(prog[wid(k,i)])) all.push({...w,id:wid(k,i)}); });
@@ -1080,6 +1138,7 @@ function renderCard(){
     document.getElementById('cFrontLang').textContent=cc.frontLang;
     document.getElementById('cBack').textContent=cc.back;
     document.getElementById('cBackLang').textContent=cc.backLang;
+    if(S.tts) speak(cc.front, cc.frontCode);
   },530);
 }
 function updateLearnProg(){
@@ -1095,6 +1154,7 @@ function flipCard(){
     document.getElementById('btnW').disabled=false;
     document.getElementById('btnC').disabled=false;
     document.getElementById('flipHint').textContent='Wie gut wusstest du es?';
+    if(S.tts){ const cc=cardContent(S.cards[S.idx]); speak(cc.back, cc.backCode); }
   }
 }
 function rate(correct){
@@ -1220,6 +1280,8 @@ function renderProgress(){
 // ═══════════════════════════════════════════
 //  INIT
 // ═══════════════════════════════════════════
+S.tts = localStorage.getItem('v_tts')!=='0';
+setTts(S.tts);
 renderHome();
 </script>
 </body>
