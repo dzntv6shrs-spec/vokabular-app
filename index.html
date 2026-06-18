@@ -128,6 +128,22 @@
     .modal-card{background:var(--surface);border:1px solid var(--border);border-radius:18px;box-shadow:var(--shadow);width:100%;max-width:440px;padding:18px;margin:40px 0}
     .modal-hdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}
     .modal-title{font-size:1.1rem;font-weight:800;color:var(--accent-light)}
+    /* Profil */
+    .profile-hint{display:flex;align-items:center;justify-content:space-between;gap:10px;background:rgba(124,108,243,.12);border:1px solid var(--accent);border-radius:12px;padding:11px 13px;margin-bottom:14px;cursor:pointer;font-size:.82rem;line-height:1.35}
+    .profile-hint .ph-go{color:var(--accent-light);font-weight:700;white-space:nowrap}
+    .pf-field{display:flex;flex-direction:column;gap:5px;margin-bottom:12px}
+    .pf-field label{font-size:.78rem;color:var(--muted);font-weight:600}
+    .pf-input{width:100%;padding:12px 14px;border-radius:12px;background:var(--bg);border:2px solid var(--border);color:var(--text);font-size:16px;outline:none;transition:border-color .2s}
+    .pf-input:focus{border-color:var(--accent)}
+    .pf-btn{width:100%;padding:13px;border-radius:12px;border:none;font-size:.95rem;font-weight:700;cursor:pointer;transition:all .18s}
+    .pf-btn.p{background:var(--accent);color:#fff}.pf-btn.p:hover{background:#5a52cc}
+    .pf-btn.g{background:transparent;color:var(--text);border:1px solid var(--border);margin-top:8px}.pf-btn.g:hover{background:var(--border)}
+    .pf-status{min-height:20px;font-size:.82rem;margin-top:10px;text-align:center}
+    .pf-status.ok{color:var(--success)}.pf-status.err{color:var(--error)}
+    .pf-who{background:var(--bg);border:1px solid var(--border);border-radius:12px;padding:14px;text-align:center;margin-bottom:8px}
+    .pf-who .who-name{font-size:1.15rem;font-weight:800;color:var(--accent-light)}
+    .pf-who .who-sub{font-size:.76rem;color:var(--muted);margin-top:3px}
+    #profileBtn.linked{border-color:var(--success);color:var(--success)}
     /* Animations */
     @keyframes popIn{from{transform:scale(.85);opacity:0}to{transform:scale(1);opacity:1}}
     @keyframes shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-8px)}75%{transform:translateX(8px)}}
@@ -171,9 +187,14 @@
   <div class="hdr">
     <h1>📚 MRD Trainer</h1>
     <div style="display:flex;gap:8px">
+      <button class="icon-btn" onclick="openProfileModal()" id="profileBtn" title="Profil & Lernstand sichern" aria-label="Profil">👤</button>
       <button class="icon-btn" onclick="openVoiceModal()" id="voiceBtn" title="Vorlesen & Stimmen" aria-label="Vorlesen und Stimmen">🗣️</button>
       <button class="icon-btn" onclick="toggleTheme()" id="themeBtn">🌙</button>
     </div>
+  </div>
+  <div id="profileHint" class="profile-hint" style="display:none" onclick="openProfileModal()">
+    <span>💾 <b>Tipp:</b> Lege ein Profil an, damit dein Lernstand dauerhaft gesichert bleibt.</span>
+    <span class="ph-go">Einrichten →</span>
   </div>
   <div class="stats-row">
     <div class="stat-card"><div class="val c-w" id="statStreak">0</div><div class="lbl">🔥 Streak</div></div>
@@ -305,6 +326,46 @@
     <div class="sec">Stimmen (je Sprache)</div>
     <div id="voicePickers" style="display:flex;flex-direction:column;gap:10px"></div>
     <div style="font-size:.72rem;color:var(--muted);margin-top:12px">Tippe 🔊 zum Anhören. Die Auswahl wird gespeichert.</div>
+  </div>
+</div>
+
+<!-- PROFIL / LERNSTAND MODAL -->
+<div id="profileModal" class="modal-overlay" onclick="if(event.target===this)closeProfileModal()">
+  <div class="modal-card">
+    <div class="modal-hdr">
+      <span class="modal-title">👤 Profil &amp; Lernstand</span>
+      <button class="icon-btn" onclick="closeProfileModal()" aria-label="Schließen">✕</button>
+    </div>
+
+    <!-- angemeldet -->
+    <div id="pfLoggedIn" style="display:none">
+      <div class="pf-who">
+        <div class="who-name" id="pfWhoName">—</div>
+        <div class="who-sub">Dein Lernstand wird automatisch in der Cloud gesichert ☁️</div>
+      </div>
+      <div class="pf-status ok" id="pfStatusIn"></div>
+      <button class="pf-btn g" onclick="profileLogout()">Abmelden</button>
+    </div>
+
+    <!-- nicht angemeldet -->
+    <div id="pfLoggedOut">
+      <div style="font-size:.84rem;color:var(--muted);line-height:1.45;margin-bottom:14px">
+        Mit Name + PIN bleibt dein Fortschritt dauerhaft erhalten – auch nach dem Löschen des Browsers oder auf einem anderen Gerät.
+      </div>
+      <div class="pf-field">
+        <label for="pfUser">Profilname</label>
+        <input id="pfUser" class="pf-input" type="text" autocomplete="off" autocapitalize="none" placeholder="z. B. Markus" maxlength="60">
+      </div>
+      <div class="pf-field">
+        <label for="pfPin">Geheimzahl (PIN)</label>
+        <input id="pfPin" class="pf-input" type="password" inputmode="numeric" autocomplete="off" placeholder="z. B. 1234" maxlength="20" onkeydown="if(event.key==='Enter')profileSubmit()">
+      </div>
+      <button class="pf-btn p" onclick="profileSubmit()">Anmelden / Profil erstellen</button>
+      <div class="pf-status" id="pfStatusOut"></div>
+      <div style="font-size:.72rem;color:var(--muted);margin-top:12px;line-height:1.4">
+        Neuer Name? → Profil wird neu angelegt.<br>Bekannter Name? → bitte die zugehörige PIN eingeben.
+      </div>
+    </div>
   </div>
 </div>
 
@@ -974,11 +1035,11 @@ let S = {
 // ═══════════════════════════════════════════
 const LS = {
   prog()    { try{return JSON.parse(localStorage.getItem('v_prog')||'{}')}catch{return{}} },
-  saveProg(p){ localStorage.setItem('v_prog',JSON.stringify(p)) },
+  saveProg(p){ localStorage.setItem('v_prog',JSON.stringify(p)); scheduleSync(); },
   streak()  { try{return JSON.parse(localStorage.getItem('v_streak')||'{"n":0,"last":null,"today":0}')}catch{return{n:0,last:null,today:0}} },
-  saveStreak(s){ localStorage.setItem('v_streak',JSON.stringify(s)) },
+  saveStreak(s){ localStorage.setItem('v_streak',JSON.stringify(s)); scheduleSync(); },
   total()   { return parseInt(localStorage.getItem('v_total')||'0') },
-  addTotal(){ localStorage.setItem('v_total',String(LS.total()+1)) },
+  addTotal(){ localStorage.setItem('v_total',String(LS.total()+1)); scheduleSync(); },
 };
 
 // ═══════════════════════════════════════════
@@ -1388,6 +1449,119 @@ function renderProgress(){
 }
 
 // ═══════════════════════════════════════════
+//  PROFIL & CLOUD-LERNSTAND
+// ═══════════════════════════════════════════
+const SYNC_URL = '/.netlify/functions/sync';
+const PROFILE = { user: null, pin: null };
+let syncTimer = null;
+
+function collectLocal(){
+  return { prog: LS.prog(), streak: LS.streak(), total: LS.total() };
+}
+function applyData(d){
+  if(!d || typeof d!=='object') return;
+  try{
+    if(d.prog!==undefined)   localStorage.setItem('v_prog',   JSON.stringify(d.prog||{}));
+    if(d.streak!==undefined) localStorage.setItem('v_streak', JSON.stringify(d.streak||{n:0,last:null,today:0}));
+    if(d.total!==undefined)  localStorage.setItem('v_total',  String(parseInt(d.total)||0));
+  }catch(e){}
+  try{ renderHome(); }catch(e){}
+}
+
+async function cloudCall(action, extra){
+  const body = Object.assign({ action, user:PROFILE.user, pin:PROFILE.pin }, extra||{});
+  const res = await fetch(SYNC_URL, {
+    method:'POST',
+    headers:{'content-type':'application/json'},
+    body: JSON.stringify(body)
+  });
+  return res.json();
+}
+
+// Anmelden bzw. Profil anlegen. silent=true unterdrueckt UI-Meldungen (Auto-Login).
+async function profileLogin(user, pin, silent){
+  PROFILE.user = user; PROFILE.pin = pin;
+  let r;
+  try{
+    r = await cloudCall('login', { data: collectLocal() }); // lokaler Stand wird bei NEUEM Profil uebernommen
+  }catch(e){
+    PROFILE.user=null; PROFILE.pin=null;
+    if(!silent) setProfileStatus(false, '⚠️ Keine Verbindung. Später erneut versuchen.');
+    return false;
+  }
+  if(!r || !r.ok){
+    PROFILE.user=null; PROFILE.pin=null;
+    if(!silent){
+      const msg = r&&r.reason==='pin' ? '❌ Falsche PIN für diesen Namen.' : '⚠️ Anmeldung fehlgeschlagen.';
+      setProfileStatus(false, msg);
+    }
+    return false;
+  }
+  // Erfolg: Zugang merken
+  try{ localStorage.setItem('v_user', user); localStorage.setItem('v_pin', pin); }catch(e){}
+  // Bei bestehendem Profil: Cloud-Stand ist maßgeblich -> lokal uebernehmen
+  if(!r.created) applyData(r.data);
+  updateProfileUI();
+  if(!silent){
+    setProfileStatus(true, r.created ? '✅ Profil erstellt – Stand gesichert!' : '✅ Angemeldet – Lernstand geladen!');
+    setTimeout(closeProfileModal, 1100);
+  }
+  return true;
+}
+
+function profileLogout(){
+  PROFILE.user=null; PROFILE.pin=null;
+  try{ localStorage.removeItem('v_user'); localStorage.removeItem('v_pin'); }catch(e){}
+  updateProfileUI();
+}
+
+// Speichert den aktuellen Stand in die Cloud (entprellt, nur wenn angemeldet)
+function scheduleSync(){
+  if(!PROFILE.user || !PROFILE.pin) return;
+  if(syncTimer) clearTimeout(syncTimer);
+  syncTimer = setTimeout(async ()=>{
+    try{ await cloudCall('save', { data: collectLocal() }); }catch(e){}
+  }, 1500);
+}
+
+// ── UI ──
+function setProfileStatus(ok, msg){
+  const el=document.getElementById('pfStatusOut');
+  if(el){ el.textContent=msg||''; el.className='pf-status '+(ok?'ok':'err'); }
+}
+function updateProfileUI(){
+  const inB=document.getElementById('pfLoggedIn'), outB=document.getElementById('pfLoggedOut');
+  const btn=document.getElementById('profileBtn'), hint=document.getElementById('profileHint');
+  const logged = !!(PROFILE.user && PROFILE.pin);
+  if(inB)  inB.style.display  = logged ? 'block':'none';
+  if(outB) outB.style.display = logged ? 'none':'block';
+  if(logged){
+    const nm=document.getElementById('pfWhoName'); if(nm) nm.textContent=PROFILE.user;
+    if(btn){ btn.classList.add('linked'); btn.textContent='✅'; btn.title='Angemeldet: '+PROFILE.user; }
+    if(hint) hint.style.display='none';
+  } else {
+    if(btn){ btn.classList.remove('linked'); btn.textContent='👤'; btn.title='Profil & Lernstand sichern'; }
+    if(hint) hint.style.display='flex';
+  }
+}
+function openProfileModal(){
+  updateProfileUI();
+  setProfileStatus(true,'');
+  const m=document.getElementById('profileModal'); if(m) m.classList.add('open');
+  if(!(PROFILE.user&&PROFILE.pin)){ const u=document.getElementById('pfUser'); if(u) setTimeout(()=>u.focus(),100); }
+}
+function closeProfileModal(){ const m=document.getElementById('profileModal'); if(m) m.classList.remove('open'); }
+
+function profileSubmit(){
+  const u=(document.getElementById('pfUser').value||'').trim();
+  const p=(document.getElementById('pfPin').value||'').trim();
+  if(!u){ setProfileStatus(false,'Bitte einen Profilnamen eingeben.'); return; }
+  if(!p){ setProfileStatus(false,'Bitte eine PIN eingeben.'); return; }
+  setProfileStatus(true,'⏳ Verbinde…');
+  profileLogin(u, p, false);
+}
+
+// ═══════════════════════════════════════════
 //  SPLASH
 // ═══════════════════════════════════════════
 function dismissSplash(){
@@ -1404,6 +1578,17 @@ S.tts = localStorage.getItem('v_tts')!=='0';
 setTts(S.tts);
 populateVoicePickers();
 renderHome();
+
+// Profil: gespeicherten Zugang automatisch anmelden, sonst Hinweis anzeigen
+(function initProfile(){
+  let u=null, p=null;
+  try{ u=localStorage.getItem('v_user'); p=localStorage.getItem('v_pin'); }catch(e){}
+  if(u && p){
+    profileLogin(u, p, true).then(ok=>{ if(!ok) updateProfileUI(); });
+  } else {
+    updateProfileUI();
+  }
+})();
 </script>
 </body>
 </html>

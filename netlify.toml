@@ -1,0 +1,9 @@
+# Netlify-Konfiguration fuer die Vokabular-App
+# Statische Seite (index.html) + serverseitige Funktion fuer den Cloud-Lernstand.
+
+[build]
+  publish = "."
+
+[functions]
+  directory = "netlify/functions"
+  node_bundler = "esbuild"
