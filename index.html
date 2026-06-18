@@ -983,9 +983,9 @@ function populateVoicePickers(){
     const pre=TTS_LANG[code].split('-')[0].toLowerCase();
     const voices=TTS_VOICES.filter(v=>v.lang && v.lang.toLowerCase().startsWith(pre));
     const row=document.createElement('div');
-    row.style.cssText='display:flex;align-items:center;gap:8px';
+    row.style.cssText='display:flex;align-items:center;gap:8px;flex-wrap:wrap';
     const lab=document.createElement('span'); lab.textContent=label;
-    lab.style.cssText='font-size:.82rem;min-width:96px';
+    lab.style.cssText='font-size:.9rem;min-width:84px';
     row.appendChild(lab);
     if(!voices.length){
       const none=document.createElement('span'); none.textContent='(keine Stimme installiert)';
@@ -994,7 +994,7 @@ function populateVoicePickers(){
     }
     const pref=getVoicePref(code);
     const sel=document.createElement('select');
-    sel.style.cssText='flex:1;min-width:0;padding:8px;border-radius:10px;background:var(--surface);color:var(--text);border:1px solid var(--border);font-size:.8rem';
+    sel.style.cssText='flex:1;min-width:120px;padding:9px 8px;border-radius:10px;background:var(--surface);color:var(--text);border:1px solid var(--border);font-size:16px';
     const auto=document.createElement('option'); auto.value=''; auto.textContent='Automatisch (beste)'; sel.appendChild(auto);
     voices.forEach(function(v){
       const id=v.voiceURI||v.name;
