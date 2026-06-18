@@ -122,6 +122,12 @@
     .nb svg{width:21px;height:21px}
     .nb.active{color:var(--accent-light);background:rgba(124,108,243,.12)}
     .spacer{height:86px}
+    /* Voice/Reading settings modal */
+    .modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:50;display:none;align-items:flex-start;justify-content:center;padding:20px 14px;overflow-y:auto}
+    .modal-overlay.open{display:flex}
+    .modal-card{background:var(--surface);border:1px solid var(--border);border-radius:18px;box-shadow:var(--shadow);width:100%;max-width:440px;padding:18px;margin:40px 0}
+    .modal-hdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}
+    .modal-title{font-size:1.1rem;font-weight:800;color:var(--accent-light)}
     /* Animations */
     @keyframes popIn{from{transform:scale(.85);opacity:0}to{transform:scale(1);opacity:1}}
     @keyframes shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-8px)}75%{transform:translateX(8px)}}
@@ -138,7 +144,10 @@
 <div id="view-home" class="view active">
   <div class="hdr">
     <h1>📚 MRD Trainer</h1>
-    <button class="icon-btn" onclick="toggleTheme()" id="themeBtn">🌙</button>
+    <div style="display:flex;gap:8px">
+      <button class="icon-btn" onclick="openVoiceModal()" id="voiceBtn" title="Vorlesen & Stimmen" aria-label="Vorlesen und Stimmen">🗣️</button>
+      <button class="icon-btn" onclick="toggleTheme()" id="themeBtn">🌙</button>
+    </div>
   </div>
   <div class="stats-row">
     <div class="stat-card"><div class="val c-w" id="statStreak">0</div><div class="lbl">🔥 Streak</div></div>
@@ -165,13 +174,6 @@
     <button class="tog-btn active" id="mCard" onclick="setMode('card')">🃏 Karteikarten</button>
     <button class="tog-btn"        id="mQuiz" onclick="setMode('quiz')">✏️ Quiz</button>
   </div>
-  <div class="sec">Vorlesen</div>
-  <div class="toggle-row" style="margin-bottom:16px">
-    <button class="tog-btn" id="tOn" onclick="setTts(true)">🔊 An</button>
-    <button class="tog-btn" id="tOff" onclick="setTts(false)">🔇 Aus</button>
-  </div>
-  <div class="sec">Stimmen</div>
-  <div id="voicePickers" style="display:flex;flex-direction:column;gap:8px;margin-bottom:16px"></div>
   <div class="sec">Kategorien</div>
   <div class="cat-grid" id="catGrid"></div>
   <div class="spacer"></div>
@@ -260,6 +262,24 @@
   <div class="sec">Nach Kategorie</div>
   <div class="plist" id="progList"></div>
   <div class="spacer"></div>
+</div>
+
+<!-- VORLESEN / STIMMEN MODAL -->
+<div id="voiceModal" class="modal-overlay" onclick="if(event.target===this)closeVoiceModal()">
+  <div class="modal-card">
+    <div class="modal-hdr">
+      <span class="modal-title">🔊 Vorlesen &amp; Stimmen</span>
+      <button class="icon-btn" onclick="closeVoiceModal()" aria-label="Schließen">✕</button>
+    </div>
+    <div class="sec">Vorlesen</div>
+    <div class="toggle-row" style="margin-bottom:16px">
+      <button class="tog-btn" id="tOn" onclick="setTts(true)">🔊 An</button>
+      <button class="tog-btn" id="tOff" onclick="setTts(false)">🔇 Aus</button>
+    </div>
+    <div class="sec">Stimmen (je Sprache)</div>
+    <div id="voicePickers" style="display:flex;flex-direction:column;gap:10px"></div>
+    <div style="font-size:.72rem;color:var(--muted);margin-top:12px">Tippe 🔊 zum Anhören. Die Auswahl wird gespeichert.</div>
+  </div>
 </div>
 
 <!-- BOTTOM NAV -->
@@ -1095,6 +1115,8 @@ function toggleTheme(){
   d.dataset.theme=dark?'light':'dark';
   document.getElementById('themeBtn').textContent=dark?'☀️':'🌙';
 }
+function openVoiceModal(){ try{ if('speechSynthesis' in window) speechSynthesis.getVoices(); }catch(e){} loadTtsVoices(); populateVoicePickers(); document.getElementById('voiceModal').classList.add('open'); }
+function closeVoiceModal(){ document.getElementById('voiceModal').classList.remove('open'); if('speechSynthesis' in window) speechSynthesis.cancel(); }
 function setLang(l){
   S.lang=l;
   document.getElementById('lEN').classList.toggle('active',l==='en');
