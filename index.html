@@ -225,6 +225,9 @@
   <div class="sec">Kategorien</div>
   <div class="cat-grid" id="catGrid"></div>
   <div class="spacer"></div>
+  <div style="text-align:center;margin-top:18px">
+    <button onclick="openImpressumModal()" style="background:none;border:none;color:var(--muted);font-size:.78rem;text-decoration:underline;cursor:pointer;padding:6px">Impressum</button>
+  </div>
 </div>
 
 <!-- LEARN -->
@@ -327,6 +330,23 @@
     <div class="sec">Stimmen (je Sprache)</div>
     <div id="voicePickers" style="display:flex;flex-direction:column;gap:10px"></div>
     <div style="font-size:.72rem;color:var(--muted);margin-top:12px">Tippe 🔊 zum Anhören. Die Auswahl wird gespeichert.</div>
+  </div>
+</div>
+
+<!-- IMPRESSUM MODAL -->
+<div id="impressumModal" class="modal-overlay" onclick="if(event.target===this)closeImpressumModal()">
+  <div class="modal-card" style="max-width:380px">
+    <div class="modal-hdr">
+      <span class="modal-title">ℹ️ Impressum</span>
+      <button class="icon-btn" onclick="closeImpressumModal()" aria-label="Schließen">✕</button>
+    </div>
+    <div style="text-align:center;padding:8px 0 4px">
+      <div style="font-size:1.05rem;font-weight:700;margin-bottom:10px">by mdling</div>
+      <div style="font-size:.9rem;color:var(--muted)">
+        Kontakt:<br>
+        <a href="mailto:support@mdling.de" style="color:var(--accent-light);text-decoration:none">support@mdling.de</a>
+      </div>
+    </div>
   </div>
 </div>
 
@@ -1129,22 +1149,38 @@ function setStatus(msg){
   clearTimeout(_ttsT);
   if(msg) _ttsT=setTimeout(()=>{ const e=document.getElementById('ttsStatus'); if(e) e.textContent=''; },4500);
 }
+// Erkennt stumme Ausgabe: Auf iOS meldet die Sprach-Engine bei aktivem Stummschalter KEINEN Fehler,
+// sie bleibt nur still. Feuert 'onstart' nicht, weisen wir auf den Stummschalter hin.
+let _ttsHeard=false;          // wird true, sobald einmal echter Ton lief -> Hinweis dann nie wieder
+let _silentT;
+const _isIOS = /iP(hone|ad|od)/.test(navigator.userAgent) || (navigator.platform==='MacIntel' && navigator.maxTouchPoints>1);
 function speak(text, code){
   if(!('speechSynthesis' in window)){ setStatus('⚠️ Browser kann nicht vorlesen'); return; }
   if(!text) return;
   const synth=window.speechSynthesis;
+  clearTimeout(_silentT);
   try{ if(synth.speaking||synth.pending) synth.cancel(); }catch(e){}
   const u=new SpeechSynthesisUtterance(text);
   u.lang=TTS_LANG[code]||'de-DE';
   const v=pickVoice(code); if(v) u.voice=v;
   u.rate=0.95;
+  u.onstart=function(){ _ttsHeard=true; clearTimeout(_silentT); };  // echte Ausgabe gestartet
   u.onerror=function(e){
     var err=(e&&e.error)||'';
     // 'canceled'/'interrupted' entstehen beim schnellen Umblättern (laufende Ausgabe wird ersetzt) -> kein echter Fehler
     if(err==='canceled'||err==='interrupted') return;
     setStatus('⚠️ '+(err||'Fehler'));
   };
-  try{ synth.speak(u); setTimeout(function(){ try{ if(synth.paused) synth.resume(); }catch(_){} },80); }
+  try{
+    synth.speak(u);
+    setTimeout(function(){ try{ if(synth.paused) synth.resume(); }catch(_){} },80);
+    // Wenn nach kurzer Zeit nichts losgelegt hat (und noch nie Ton lief): Stummschalter-Hinweis
+    _silentT=setTimeout(function(){
+      if(_ttsHeard) return;
+      setStatus(_isIOS ? '🔇 Kein Ton? Prüfe den Stummschalter seitlich am iPhone.'
+                       : '🔇 Kein Ton? Prüfe, ob der Ton stummgeschaltet ist.');
+    },1800);
+  }
   catch(e){ setStatus('⚠️ Ausnahme beim Vorlesen'); }
 }
 // Lautsprecher-Button auf der Karte: schaltet Ton an/aus (und liest beim Einschalten das aktuelle Wort)
@@ -1210,6 +1246,8 @@ function toggleTheme(){
 }
 function openVoiceModal(){ try{ if('speechSynthesis' in window) speechSynthesis.getVoices(); }catch(e){} loadTtsVoices(); populateVoicePickers(); document.getElementById('voiceModal').classList.add('open'); }
 function closeVoiceModal(){ document.getElementById('voiceModal').classList.remove('open'); if('speechSynthesis' in window) speechSynthesis.cancel(); }
+function openImpressumModal(){ document.getElementById('impressumModal').classList.add('open'); }
+function closeImpressumModal(){ document.getElementById('impressumModal').classList.remove('open'); }
 function setLang(l){
   S.lang=l;
   document.getElementById('lEN').classList.toggle('active',l==='en');
